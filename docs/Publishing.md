@@ -32,7 +32,7 @@ The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/manda
 Configured in `tauri.conf.json` (`bundle.linux.deb`):
 
 - `Depends: libwebkit2gtk-4.1-0, libgtk-3-0`. Tauri already adds them by itself; if they are repeated in `depends` they come out duplicated in the `control` file, so the list is left empty there.
-- `Recommends: ffmpeg, imagemagick, librsvg2-bin, pandoc, libreoffice, poppler-utils, ghostscript, zip, unzip, p7zip-full`. They are recommended and not required because each format uses its own tool and the app tells which one is missing; `libreoffice` is very heavy. `apt` installs the recommended ones by default.
+- `Recommends: ffmpeg, imagemagick, librsvg2-bin, pandoc, libreoffice, poppler-utils, ghostscript, zip, unzip, 7zip | p7zip-full` (`p7zip-full` no longer exists on Ubuntu 26.04, where `7zip` replaced it; on 24.04 and Debian 13 it is only a transitional package that installs `7zip`; `7zip` exists on Ubuntu 22.04 to 26.04 and Debian 12 and 13, and gives the app a `7z` or `7zz` binary, both of which it looks for). They are recommended and not required because each format uses its own tool and the app tells which one is missing; `libreoffice` is very heavy. `apt` installs the recommended ones by default.
 
 `targets` is `["deb"]` (with `"all"` rpm and AppImage are also attempted, untested).
 
@@ -42,3 +42,9 @@ Configured in `tauri.conf.json` (`bundle.linux.deb`):
 - AppImage, rpm, Flatpak and Snap.
 - The `.desktop` launches the app without arguments (drag mode), without `GDK_BACKEND=x11`; on Wayland it may not be placed next to the cursor.
 - There are `dead_code` warnings when compiling, coming from Rust code under development.
+
+## Clean-install test of the `.deb` (2026-10-18)
+
+The `.deb` built from the code of that day was installed in clean Docker containers of **Ubuntu 22.04, 24.04 and 26.04 and Debian 12 and 13**. In each one: `apt install ./mandarina.deb` with and without the recommended packages, no missing mandatory library, the files in place and a `.desktop` that points to `mandarina`; then the app was started in a virtual screen (Xvfb), the wheel was opened on a photo, the PNG segment was clicked with `xdotool`, the converted file was created and the app closed by itself after "Done"; finally `apt remove` left nothing in `/usr`. All five passed. Findings: `p7zip-full` does not exist on Ubuntu 26.04 (fixed with `7zip | p7zip-full`, and the app's message now says `sudo apt install 7zip`); `ldd` warns about optional (weak) glibc versions on Debian 12 and Ubuntu 22.04, because the binary is built on a newer system, but it runs.
+
+Installing the recommended packages in an empty system downloads about **620 MB (24.04) to 715 MB (26.04)**, 640 to 750 packages, because `libreoffice` is a recommended package; without the recommended ones it is about 130 to 145 MB (the WebKitGTK stack, which a desktop already has). The test does **not** cover a real desktop: GNOME, the Nautilus script and the Alt+M shortcut, Wayland placement of the wheel, GPU rendering and window transparency (the virtual screen has no compositor, so the background is black). That is what [[Manual-Testing]] is for.

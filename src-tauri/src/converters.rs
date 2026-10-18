@@ -738,7 +738,7 @@ fn extract_archive(src: &Path, dest: &Path) -> Result<(), String> {
             } else if tool_exists("bsdtar") {
                 run("bsdtar", &["-xf", &src, "-C", &dest])
             } else {
-                Err(tr("Cannot open RAR files. Install: sudo apt install p7zip-full", "No se pueden abrir RAR. Instala: sudo apt install p7zip-full"))
+                Err(tr("Cannot open RAR files. Install: sudo apt install 7zip", "No se pueden abrir RAR. Instala: sudo apt install 7zip"))
             }
         }
         // tar, tar.gz and tgz: tar detects the compression by itself

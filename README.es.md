@@ -54,7 +54,7 @@ Mandarina todavía no está empaquetada para ninguna distribución, así que por
 Las conversiones las hacen programas del sistema. Si falta alguno, solo fallan los formatos que lo usan, y la app te dice qué paquete instalar.
 
 ```bash
-sudo apt install ffmpeg imagemagick librsvg2-bin pandoc libreoffice poppler-utils ghostscript zip unzip p7zip-full
+sudo apt install ffmpeg imagemagick librsvg2-bin pandoc libreoffice poppler-utils ghostscript zip unzip 7zip
 ```
 
 ### 2. Instala las herramientas para compilar

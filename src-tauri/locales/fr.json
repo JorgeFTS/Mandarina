@@ -20,7 +20,7 @@
   "Could not read the file: {e}": "Impossible de lire le fichier : {e}",
   "Could not create the file: {e}": "Impossible de créer le fichier : {e}",
   "Could not write the file: {e}": "Impossible d'écrire le fichier : {e}",
-  "Cannot open RAR files. Install: sudo apt install p7zip-full": "Impossible d'ouvrir les fichiers RAR. Installez : sudo apt install p7zip-full",
+  "Cannot open RAR files. Install: sudo apt install 7zip": "Impossible d'ouvrir les fichiers RAR. Installez : sudo apt install 7zip",
   "Invalid path": "Chemin non valide",
   "Invalid path: {e}": "Chemin non valide : {e}",
   "File does not exist": "Le fichier n'existe pas",

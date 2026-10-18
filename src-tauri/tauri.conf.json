@@ -53,7 +53,7 @@
           "ghostscript",
           "zip",
           "unzip",
-          "p7zip-full"
+          "7zip | p7zip-full"
         ]
       }
     }
