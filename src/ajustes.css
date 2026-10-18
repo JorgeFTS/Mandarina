@@ -1,0 +1,71 @@
+/* Pantalla de ajustes. Usa las variables de .ed-raiz (editor.css), así que sigue el tema claro u oscuro */
+
+.aj-raiz { gap: 10px; }
+
+.aj-lista {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ed-borde) transparent;
+}
+
+.aj-tipo { display: flex; flex-direction: column; gap: 6px; }
+
+.aj-grupo { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--ed-borde); }
+.aj-grupo-titulo { margin: 0; font-size: 15px; font-weight: 800; }
+
+/* Muestras de color: un círculo por acento, el elegido lleva un anillo */
+.aj-color {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--muestra);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.aj-color input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.aj-color.aj-activa { outline: 2px solid var(--ed-texto); outline-offset: 2px; }
+.aj-color:has(input:focus-visible) { outline: 2px solid var(--ed-naranja); outline-offset: 3px; }
+
+.aj-cab { display: flex; align-items: baseline; gap: 10px; }
+.aj-nombre { margin: 0; font-size: 14px; font-weight: 800; }
+.aj-cuenta { flex: 1; font-size: 12px; font-weight: 600; color: var(--ed-suave); }
+
+.aj-restaurar {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  color: var(--ed-naranja);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.aj-restaurar:disabled { opacity: 0.35; cursor: default; }
+.aj-restaurar:hover:not(:disabled) { text-decoration: underline; }
+
+.aj-fichas { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.aj-ficha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--ed-panel);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.aj-ficha input { accent-color: var(--ed-naranja); margin: 0; cursor: inherit; }
+.aj-ficha.aj-activa { border-color: var(--ed-naranja); }
+.aj-ficha:has(input:disabled) { opacity: 0.45; cursor: default; }
+.aj-ficha:has(input:focus-visible) { outline: 2px solid var(--ed-naranja); outline-offset: 2px; }

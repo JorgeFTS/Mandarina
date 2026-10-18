@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mandarina</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="editor.css" />
+    <link rel="stylesheet" href="ajustes.css" />
+    <script src="locales/pt.js" defer></script>
+    <script src="locales/fr.js" defer></script>
+    <script src="i18n.js" defer></script>
+    <script src="geometria.js" defer></script>
+    <script src="editor.js" defer></script>
+    <script src="ajustes.js" defer></script>
+    <script src="main.js" defer></script>
+  </head>
+
+  <body>
+    <main id="escenario">
+      <section id="inicio" hidden>
+        <div id="circulo" class="circulo">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4v11M7 11l5 5 5-5M5 20h14" />
+          </svg>
+          <p data-i18n="home.drop"></p>
+        </div>
+      </section>
+
+      <section id="vista-rueda" hidden>
+        <svg id="rueda" viewBox="0 0 460 460" role="group">
+          <circle class="disco" cx="230" cy="230" r="72" />
+          <g id="segmentos"></g>
+        </svg>
+        <div id="centro">
+          <div id="centro-icono"></div>
+          <div id="pildora" class="pildora"></div>
+        </div>
+        <button id="ajustes" class="ajustes" type="button" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" />
+          </svg>
+        </button>
+      </section>
+
+      <section id="vista-tarjeta" hidden></section>
+    </main>
+
+    <section id="vista-editor" hidden>
+      <div id="editor-contenedor"></div>
+    </section>
+
+    <section id="vista-ajustes" hidden>
+      <div id="ajustes-contenedor"></div>
+    </section>
+  </body>
+</html>

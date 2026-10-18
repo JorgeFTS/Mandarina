@@ -1,0 +1,429 @@
+:root {
+  --naranja: #f26a1b;
+  --naranja-claro: #ff8a3d;
+  --segmento: rgba(255, 255, 255, 0.9);
+  --segmento-borde: rgba(0, 0, 0, 0.07);
+  --texto: #3a2a1d;
+  --suave: rgba(58, 42, 29, 0.62);
+  --disco: rgba(255, 255, 255, 0.82);
+  --tarjeta: rgba(255, 255, 255, 0.96);
+  --pildora: rgba(0, 0, 0, 0.07);
+  --sombra: rgba(40, 20, 0, 0.28);
+  --error-fondo: rgba(255, 238, 236, 0.97);
+  --error-texto: #a3281c;
+  --punteado: rgba(60, 40, 20, 0.45);
+  --circulo: rgba(255, 255, 255, 0.55);
+  --segmento-herr: rgba(205, 218, 234, 0.95);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --segmento: rgba(44, 44, 49, 0.92);
+    --segmento-borde: rgba(255, 255, 255, 0.09);
+    --texto: #f4efe9;
+    --suave: rgba(244, 239, 233, 0.62);
+    --disco: rgba(34, 34, 38, 0.88);
+    --tarjeta: rgba(40, 40, 45, 0.96);
+    --pildora: rgba(255, 255, 255, 0.12);
+    --sombra: rgba(0, 0, 0, 0.55);
+    --error-fondo: rgba(70, 30, 30, 0.97);
+    --error-texto: #ffb4aa;
+    --punteado: rgba(255, 255, 255, 0.4);
+    --circulo: rgba(30, 30, 34, 0.55);
+    --segmento-herr: rgba(58, 70, 88, 0.94);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  color: var(--texto);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+/* El escenario (460x460) se centra en --x/--y: por defecto el centro de la ventana */
+#escenario {
+  position: fixed;
+  left: var(--x, 50%);
+  top: var(--y, 50%);
+  width: 460px;
+  height: 460px;
+  transform: translate(-50%, -50%);
+  transition: opacity 120ms ease-out;
+}
+
+#escenario.oculto { opacity: 0; }
+
+#escenario > section {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  animation: entrada 150ms ease-out;
+}
+
+@keyframes entrada {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- Inicio ---------- */
+
+.circulo {
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  border: 2.5px dashed var(--punteado);
+  background: var(--circulo);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--suave);
+}
+
+.circulo svg {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: var(--naranja);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.circulo p { margin: 0; font-size: 15px; font-weight: 600; }
+
+/* ---------- Rueda ---------- */
+
+#rueda {
+  width: 460px;
+  height: 460px;
+  filter: drop-shadow(0 6px 14px var(--sombra));
+}
+
+.disco { fill: var(--disco); stroke: var(--segmento-borde); stroke-width: 1; }
+
+.segmento { cursor: pointer; outline: none; }
+
+.segmento > path {
+  fill: var(--segmento);
+  stroke: var(--segmento-borde);
+  stroke-width: 1;
+  transition: fill 120ms;
+}
+
+.segmento text {
+  fill: var(--texto);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+  transition: fill 120ms;
+}
+
+.segmento.herr > path { fill: var(--segmento-herr); }
+
+.segmento .ico {
+  fill: none;
+  stroke: var(--texto);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  overflow: visible;
+  transition: stroke 120ms;
+}
+
+.segmento text.largo { font-size: 12.5px; letter-spacing: 0.02em; }
+#rueda.herramientas .segmento text { font-size: 13.5px; }
+#rueda.herramientas .segmento text.largo { font-size: 12px; letter-spacing: 0.01em; }
+#rueda.sub .disco { cursor: pointer; }
+
+.segmento.activo > path { fill: var(--naranja); }
+.segmento.activo text { fill: #fff; }
+.segmento.activo .ico { stroke: #fff; }
+
+.segmento:focus-visible > path {
+  stroke: var(--naranja-claro);
+  stroke-width: 3;
+}
+
+#centro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-bottom: 18px; /* deja sitio al engranaje de ajustes bajo la píldora */
+  pointer-events: none;
+}
+
+#centro-icono {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+}
+
+.miniatura {
+  width: 88px;
+  height: 88px;
+  object-fit: cover;
+  border-radius: 18px;
+  box-shadow: 0 3px 10px var(--sombra);
+  animation: fundido 250ms ease-out;
+}
+
+@keyframes fundido {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#centro-icono svg {
+  width: 52px;
+  height: 52px;
+  fill: none;
+  stroke: var(--naranja);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pildora {
+  min-width: 70px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--pildora);
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  transition: background 120ms, color 120ms;
+}
+
+.pildora.varios { padding: 4px 10px; font-size: 12px; white-space: nowrap; }
+
+.insignia {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--naranja);
+  border: 2px solid var(--disco);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}
+
+.pildora.largo { padding: 4px 8px; font-size: 11px; white-space: nowrap; letter-spacing: 0; }
+
+.pildora.formato { background: var(--naranja); color: #fff; letter-spacing: 0.04em; }
+
+/* ---------- Tarjetas ---------- */
+
+.tarjeta {
+  position: relative;
+  width: 300px;
+  padding: 22px 22px 20px;
+  border-radius: 22px;
+  background: var(--tarjeta);
+  border: 1px solid var(--segmento-borde);
+  box-shadow: 0 10px 30px var(--sombra);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.tarjeta h2 { margin: 0; font-size: 17px; font-weight: 800; }
+
+.detalle {
+  margin: 0;
+  max-width: 100%;
+  font-size: 14px;
+  color: var(--suave);
+  overflow-wrap: anywhere;
+}
+
+.tarjeta.progreso .detalle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tarjeta.progreso.varios h2 { font-size: 15px; }
+
+.tarjeta.error { background: var(--error-fondo); }
+.tarjeta.error h2, .tarjeta.error .detalle { color: var(--error-texto); }
+
+.tarjeta.parcial { border: 2px solid var(--naranja); }
+.tarjeta.parcial .detalle { white-space: pre-line; }
+
+.boton {
+  margin-top: 8px;
+  padding: 8px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--naranja);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.boton:hover { background: var(--naranja-claro); }
+
+.boton:focus-visible, .equis:focus-visible {
+  outline: 3px solid var(--naranja-claro);
+  outline-offset: 2px;
+}
+
+.equis {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: var(--pildora);
+  color: var(--suave);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.equis:hover { background: var(--naranja); color: #fff; }
+
+.barra {
+  width: 100%;
+  height: 8px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--pildora);
+  overflow: hidden;
+}
+
+.relleno {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--naranja), var(--naranja-claro));
+  transition: width 250ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #escenario > section, .miniatura { animation: none; }
+  .relleno { transition: none; }
+  .segmento > path, .segmento text, .segmento .ico, .pildora { transition: none; }
+}
+
+/* ---------- Marca de "Listo" ---------- */
+
+.check {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: var(--naranja);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 40px;
+  text-align: center;
+}
+
+/* ---------- Editor visual (ocupa toda la ventana, fuera del escenario de 460x460) ---------- */
+
+#vista-editor,
+#vista-ajustes {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: var(--tarjeta);
+  border: 1px solid var(--segmento-borde);
+  box-shadow: 0 10px 30px var(--sombra);
+  animation: entrada 150ms ease-out;
+}
+
+#editor-contenedor {
+  width: 740px;
+  height: 560px;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+}
+
+.editor-falta {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.editor-falta h2 { margin: 0; font-size: 17px; font-weight: 800; }
+
+/* ---------- Ajustes (ocupa toda la ventana, como el editor) ---------- */
+
+#ajustes-contenedor {
+  width: 560px;
+  height: 620px;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+}
+
+/* Engranaje pequeño en la parte baja del círculo central */
+.ajustes {
+  position: absolute;
+  left: 50%;
+  top: 64.5%;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--suave);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms, background 120ms, color 120ms;
+}
+.ajustes svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ajustes.visible, .ajustes:hover, .ajustes:focus-visible { opacity: 1; background: var(--pildora); color: var(--naranja); }
+.ajustes:focus-visible { outline: 2px solid var(--naranja-claro); outline-offset: 1px; }

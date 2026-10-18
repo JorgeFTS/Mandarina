@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Rust / Tauri (se regeneran al compilar; Cargo.lock sí se versiona)
+src-tauri/target/
+src-tauri/gen/
+
+# Claude Code (configuración local)
+.claude/
+
+# Sistema y editores
+.directory
+Thumbs.db
+*~
+.obsidian/workspace*.json
+docs/.obsidian/workspace*.json
+test-files/
+
+# Paquetes que se generan al compilar fuera de src-tauri/target
+*.deb
+*.rpm
+*.AppImage
+
+# Claves y variables de entorno locales
+.env
+.env.*
+
+# Notas para trabajar con Claude Code (personales, no son parte del programa)
+CLAUDE.md
+SKILLS.md

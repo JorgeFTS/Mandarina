@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Script de Nautilus (Nautilus script): right-click > Scripts > Convert with Mandarina / Convertir con Mandarina
+# El instalador lo copia con el nombre del idioma activo (installer copies it under the active language name).
+
+# Nautilus pasa los elementos seleccionados separados por saltos de línea; se guardan todos,
+# cada uno como un argumento (así se conservan espacios y comillas en los nombres)
+files=()
+if [ -n "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS" ]; then
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            files+=("$line")
+        fi
+    done <<< "$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS"
+else
+    files=("$@")
+fi
+if [ "${#files[@]}" -eq 0 ]; then
+    exit 0
+fi
+
+# Orden de búsqueda del programa: variable MANDARINA_BIN, PATH y, por último,
+# la ruta que escribe el instalador en lugar del marcador
+if [ -n "$MANDARINA_BIN" ]; then
+    bin="$MANDARINA_BIN"
+elif command -v mandarina >/dev/null 2>&1; then
+    bin="mandarina"
+else
+    bin="__MANDARINA_BIN__"
+fi
+
+# Ventana transparente: mejor con X11 (en Wayland no se puede colocar junto al cursor)
+export GDK_BACKEND=x11
+exec "$bin" "${files[@]}"
