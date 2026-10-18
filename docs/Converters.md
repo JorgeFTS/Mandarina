@@ -1,83 +1,83 @@
-# Conversores
+# Converters
 
-Archivo: `src-tauri/src/converters.rs` (~800 líneas, un solo archivo). Port a Rust de `~/Desktop/Projects/mandarina/converters.py`. Los comandos que expone están en [[Comandos-Tauri]].
+File: `src-tauri/src/converters.rs` (a single file). It is a Rust port of the converters of the earlier Python version of the project. The commands it exposes are in [[Tauri-Commands]].
 
-## Tipos y destinos (orden de rueda, sin el propio formato)
+## Types and targets (wheel order, without the file's own format)
 
-| Tipo | Destinos | Herramienta |
+| Type | Targets | Tool |
 |---|---|---|
-| imagen | jpg, png, webp, tiff, avif, bmp, pdf | ImageMagick, rsvg-convert (SVG) |
+| image | jpg, png, webp, tiff, avif, bmp, pdf | ImageMagick, rsvg-convert (SVG) |
 | audio | mp3, m4a, wav, flac, ogg, opus, aiff, wma | ffmpeg |
-| vídeo | mp4, mov, mkv, webm, avi, wmv, gif, mp3 | ffmpeg |
+| video | mp4, mov, mkv, webm, avi, wmv, gif, mp3 | ffmpeg |
 | pdf | docx, jpg, png, epub, txt, md | pdftoppm, pdftotext, pandoc, LibreOffice |
-| documento | docx, md, txt, epub, html, pdf, jpg, png | pandoc, LibreOffice |
-| presentación | pdf, jpg, png | LibreOffice |
-| hoja de cálculo | xlsx, ods, csv, tsv, pdf | LibreOffice |
-| subtítulo | srt, vtt, txt | ffmpeg, Rust (txt) |
-| comprimido | zip, tar, tar.gz (rar solo entrada) | zip, tar, unzip, 7z |
-| carpeta | zip, tar, tar.gz (comprimir la carpeta) | zip, tar |
+| document | docx, md, txt, epub, html, pdf, jpg, png | pandoc, LibreOffice |
+| presentation | pdf, jpg, png | LibreOffice |
+| spreadsheet | xlsx, ods, csv, tsv, pdf | LibreOffice |
+| subtitle | srt, vtt, txt | ffmpeg, Rust (txt) |
+| archive | zip, tar, tar.gz (rar is input only) | zip, tar, unzip, 7z |
+| folder | zip, tar, tar.gz (compress the folder) | zip, tar |
 
-Alias: `jpeg`→`jpg`, `tif`→`tiff`, `heif`→`heic`, `htm`→`html`, `tgz`→`tar.gz`. HEIC es solo entrada (ImageMagick local no lo escribe).
+Aliases: `jpeg`→`jpg`, `tif`→`tiff`, `heif`→`heic`, `htm`→`html`, `tgz`→`tar.gz`. HEIC is input only (the local ImageMagick does not write it).
 
-## Cómo funciona
+## How it works
 
-- `category` y `targets_of` deciden el tipo y los destinos; `convert_blocking` valida, calcula la salida con `unique_path` (nunca sobrescribe: `_1`, `_2`...) y despacha a `convert_image`, `convert_ffmpeg`, `convert_pdf`, `convert_document`, `convert_slides`, `convert_spreadsheet`, `convert_subtitle` o `convert_archive`.
-- Todo con `std::process::Command`, sin shell; ruta absoluta, y `--` donde la herramienta lo admite (un archivo `-x.pdf` no se lee como opción).
-- `TempDir` es una carpeta temporal que se borra sola, también en error. LibreOffice usa un perfil propio (`-env:UserInstallation`) para no chocar con una instancia abierta.
-- `tool_exists` busca en el PATH sin ejecutar nada.
-- Si una conversión falla o se cancela se borra la salida a medias.
-- **Cancelar:** `run_in` usa `spawn` y un bucle `try_wait` cada 50 ms que mira el `AtomicBool` global `CANCEL`; cada hijo va en su propio grupo de procesos y se mata el grupo con `kill -KILL -pgid` (así también muere lo que lance `soffice`). Devuelve `Err("Cancelado")`. Los tests que convierten toman un `Mutex` para no pisarse el flag.
-- **Progreso real:** `convert(app, path, format)` crea un cierre `Progress` que emite el evento `convert-progress` (`{ "percent": f64 }`, de 0 a 99, como mucho cada 100 ms, nunca 100) y llama a `convert_with`. `convert_ffmpeg` y `convert_subtitle` obtienen la duración con `ffprobe` y leen `-progress pipe:1` (acepta `out_time_us`, `out_time_ms` y `out_time=`). Sin duración o sin callback no se emite nada. La lógica pura es `progress_seconds`, `next_percent` y `parse_duration`; `convert_blocking` solo existe para pruebas.
-- **Varios archivos:** `get_targets_many` (regla: todos los archivos soportados deben admitir el formato y no todos deben estar ya en él; `type_targets` e `is_already` son las funciones auxiliares) y `convert_many`, que usa `convert_one` para cada archivo (sin tocar `CANCEL`, que se reinicia una sola vez al empezar). Devuelve `BatchResult { outputs, skipped, failed }`; un fallo no detiene el lote y la cancelación conserva lo ya creado. Emite `convert-file` y el progreso global (`global_percent`, `GlobalProgress`).
-- **Miniatura:** `src-tauri/src/thumbnail.rs`, comando `thumbnail(path)` → data URL JPEG de máximo 200 px (imágenes y SVG con ImageMagick/rsvg-convert, vídeo con un fotograma de ffmpeg, PDF con la primera página con pdftoppm). Máximo 3 s, no usa `CANCEL` ni escribe junto al original. Base64 hecho a mano. Los nombres con `[`, `]`, `*` o `:` funcionan usando ruta absoluta más `[0]` (el prefijo `file:` rompe con esos nombres).
-- **Nombres de salida:** `nombre.ext`, y si existe `nombre 2.ext`, `nombre 3.ext`... (carpetas de páginas: `nombre_pages 2`).
-- **Carpeta como entrada:** `Kind::Folder`; `convert_folder` comprime desde la carpeta padre incluyendo el nombre dentro del archivo.
-- Los comandos de la rueda (`initial_path`, `file_info`, `show_wheel`, `cancel`, `quit`) están en `src-tauri/src/wheel.rs`.
-- Errores: mensaje corto en español; si falta una herramienta, indica el `apt install`.
+- `category` and `targets_of` decide the type and the targets; `convert_blocking` validates, computes the output with `unique_path` (it never overwrites: `name 2.ext`, `name 3.ext`...) and dispatches to `convert_image`, `convert_ffmpeg`, `convert_pdf`, `convert_document`, `convert_slides`, `convert_spreadsheet`, `convert_subtitle` or `convert_archive`.
+- Everything uses `std::process::Command`, with no shell; absolute path, and `--` wherever the tool supports it (a file `-x.pdf` is not read as an option).
+- `TempDir` is a temporary folder that deletes itself, also on error. LibreOffice uses its own profile (`-env:UserInstallation`) so it does not clash with an instance that is already open.
+- `tool_exists` searches the PATH without running anything.
+- If a conversion fails or is cancelled, the half-written output is deleted.
+- **Cancel:** `run_in` uses `spawn` and a `try_wait` loop every 50 ms that looks at the global `AtomicBool` `CANCEL`; every child goes in its own process group and the group is killed with `kill -KILL -pgid` (so what `soffice` launches dies too). It returns the `[cancelled]` error. The tests that convert take a `Mutex` so they do not step on the flag.
+- **Real progress:** `convert(app, path, format)` creates a `Progress` closure that emits the `convert-progress` event (`{ "percent": f64 }`, from 0 to 99, at most every 100 ms, never 100) and calls `convert_with`. `convert_ffmpeg` and `convert_subtitle` get the duration with `ffprobe` and read `-progress pipe:1` (it accepts `out_time_us`, `out_time_ms` and `out_time=`). With no duration or no callback nothing is emitted. The pure logic is `progress_seconds`, `next_percent` and `parse_duration`; `convert_blocking` only exists for tests.
+- **Several files:** `get_targets_many` (rule: all the supported files must accept the format and not all of them may already be in it; `type_targets` and `is_already` are the helper functions) and `convert_many`, which uses `convert_one` for each file (without touching `CANCEL`, which is reset only once at the start). It returns `BatchResult { outputs, skipped, failed }`; a failure does not stop the batch and cancelling keeps what was already created. It emits `convert-file` and the global progress (`global_percent`, `GlobalProgress`).
+- **Thumbnail:** `src-tauri/src/thumbnail.rs`, command `thumbnail(path)` → JPEG data URL of at most 200 px (images and SVG with ImageMagick/rsvg-convert, video with an ffmpeg frame, PDF with the first page through pdftoppm). At most 3 s, it does not use `CANCEL` and does not write next to the original. Base64 done by hand. Names with `[`, `]`, `*` or `:` work by using an absolute path plus `[0]` (the `file:` prefix breaks with those names).
+- **Output names:** `name.ext`, and if it exists `name 2.ext`, `name 3.ext`... (page folders: `name_pages 2`).
+- **Folder as input:** `Kind::Folder`; `convert_folder` compresses from the parent folder, including the name inside the archive.
+- The wheel commands (`initial_paths`, `file_info`, `show_wheel`, `cancel`, `quit`) are in `src-tauri/src/wheel.rs`.
+- Errors: a short message in the active language (see [[Languages]]); if a tool is missing, it gives the `apt install` command.
 
-## Decisiones
+## Decisions
 
-- pdf/documento/presentación → jpg/png: con **varias páginas** crea una carpeta `<nombre>_pages` (`_pages 2`...) y `convert` devuelve la carpeta; con **una sola página** devuelve un archivo suelto `<nombre>.jpg` y no deja carpeta (`single_page_to_file`). Diferencia con el Python, que siempre creaba carpeta.
-- pdf → md y epub pasan por DOCX y luego pandoc.
-- El TSV de LibreOffice entrecomilla los textos, igual que el Python.
-- ffmpeg usa `-n` (no sobrescribir) en vez de `-y`.
-- PDF → pptx/xlsx del Python quedan fuera (el xlsx necesitaba openpyxl).
+- pdf/document/presentation → jpg/png: with **several pages** it creates a folder `<name>_pages` (`_pages 2`...) and `convert` returns the folder; with **a single page** it returns a loose file `<name>.jpg` and leaves no folder (`single_page_to_file`). A difference from the Python version, which always created a folder.
+- pdf → md and epub go through DOCX and then pandoc.
+- The LibreOffice TSV quotes the texts, the same as the Python version.
+- ffmpeg uses `-n` (do not overwrite) instead of `-y`.
+- PDF → pptx/xlsx from the Python version are left out (the xlsx needed openpyxl).
 
-## Pruebas
+## Tests
 
-`cargo test`: 51 (unitarias de tipos, destinos, alias, nombres; integración con ffmpeg, ImageMagick, pandoc, pdftotext, pdftoppm, LibreOffice csv→xlsx/tsv, zip→tar.gz). Las de integración se saltan si falta la herramienta. Probado a mano: md→pdf/png, docx→pdf, doc→md/pdf, pptx→pdf/jpg, tsv→xlsx/csv, pdf→docx/md/epub/txt.
+`cargo test`: unit tests of types, targets, aliases and names, plus integration tests with ffmpeg, ImageMagick, pandoc, pdftotext, pdftoppm, LibreOffice (csv→xlsx/tsv), zip→tar.gz, packing and documents with HTML. The integration ones skip themselves if the tool is missing. Tried by hand: md→pdf/png, docx→pdf, doc→md/pdf, pptx→pdf/jpg, tsv→xlsx/csv, pdf→docx/md/epub/txt.
 
-**Probado además:** SVG a png/pdf/jpg, vídeo a GIF, aviso de herramienta que falta, progreso con un audio de 3 s, cancelar con progreso activo.
+**Also tried:** SVG to png/pdf/jpg, video to GIF, the missing tool notice, progress with a 3 s audio, cancelling with progress active.
 
-**Sin probar:** rar (no hay `rar` ni `unrar`; la prueba `convierte_rar_a_zip` se salta), extracción de zip con 7z sin `unzip`, miniatura de heic y avif, archivos .xls, .ods, .odp reales, y los eventos y miniaturas en una ventana Tauri real.
+**Untested:** rar (there is no `rar` or `unrar`; the test `convierte_rar_a_zip` is skipped), zip extraction with 7z without `unzip`, thumbnails of heic and avif, real .xls, .ods and .odp files, and the events and thumbnails in a real Tauri window. See [[Manual-Testing]].
 
-Relacionado: [[Arquitectura]], [[Decisiones]].
+Related: [[Architecture]], [[Decisions]].
 
-## Empaquetar archivos (zip, tar, tar.gz)
+## Packing files (zip, tar, tar.gz)
 
-- `pack(paths, formato)` (en `converters.rs`) empaqueta uno o varios archivos o carpetas de cualquier tipo en un solo archivo junto al primero: `nombre.zip` con uno, `Archive.zip` / `Archivo.zip` con varios. Enlaza todo en una carpeta temporal para que quede en la raíz del archivo (zip sigue los enlaces, tar con `-h`).
-- Con **varios archivos** y ninguno comprimido, `get_targets_many` ofrece siempre `zip` (si la lista ya tiene 8 formatos se quita el último para dejarle sitio, la rueda admite 8) y `convert_many` con zip/tar/tar.gz hace **un solo archivo** con todos, no uno por archivo. Si alguno es un zip/tar/rar sigue la conversión archivo por archivo.
-- Con **un archivo** suelto el zip es la herramienta `zip` de [[Herramientas]], no un destino de conversión (la rueda tiene 8 segmentos como máximo).
+- `pack(paths, format)` (in `converters.rs`) packs one or several files or folders of any type into a single archive next to the first one: `name.zip` with one, `Archive.zip` (`Archivo.zip` in Spanish) with several. It links everything into a temporary folder so that it ends up at the root of the archive (zip follows links, tar with `-h`).
+- With **several files** and none of them an archive, `get_targets_many` always offers `zip` (if the list already has 8 formats, the last one is dropped to make room for it, since the wheel takes 8) and `convert_many` with zip/tar/tar.gz makes **a single file** with all of them, not one per file. If any of them is a zip/tar/rar, conversion goes on file by file.
+- With **a single** file, zip is the `zip` tool of [[Tools]], not a conversion target (the wheel has 8 segments at most).
 
-## Imágenes de los documentos en md y html
+## Images of documents in md and html
 
-`convert_pandoc` pasa `--extract-media=<nombre>_media` cuando el destino es `md` o `html` (con cwd = la carpeta del resultado, para que los enlaces salgan relativos: `nombre_media/media/rId1.jpg`). La carpeta la elige `unique_media_folder` (`nombre_media`, `nombre_media_2`... sin espacios, porque van dentro de enlaces); pandoc solo la crea si el documento tiene imágenes, y si la conversión falla se borra. Sin esto los enlaces quedaban rotos y las imágenes se perdían. El destino `html` va además como página completa (`-s`, con `pagetitle` = nombre del archivo): como fragmento no llevaba `<meta charset>` y los acentos se veían mal al abrirlo en un navegador. `epub` ya lleva las imágenes dentro y `txt` no las tiene. Probado a mano con un docx de 265 páginas (pdf 6 s, txt/md/html/epub 2 a 3 s, 265 jpg 24 s).
+`convert_pandoc` passes `--extract-media=<name>_media` when the target is `md` or `html` (with cwd = the folder of the result, so that the links come out relative: `name_media/media/rId1.jpg`). The folder is chosen by `unique_media_folder` (`name_media`, `name_media_2`... with no spaces, because they go inside links); pandoc only creates it if the document has images, and if the conversion fails it is deleted. Without this the links were broken and the images were lost. The `html` target also goes as a complete page (`-s`, with `pagetitle` = the file name): as a fragment it had no `<meta charset>` and the accents looked wrong when opened in a browser. `epub` already carries the images inside and `txt` has none. Tried by hand with a 265-page docx (pdf 6 s, txt/md/html/epub 2 to 3 s, 265 jpg 24 s).
 
-## Markdown con HTML (README de GitHub) a docx y txt
+## Markdown with HTML (GitHub README) to docx and txt
 
-Un `.md` con `<table>`, `<img>`, `<br>` o `<b>` dentro, directo a docx, pierde ese HTML: pandoc lo deja como HTML crudo y el escritor de docx lo descarta (las tablas HTML salían como párrafos sueltos y las imágenes `<img>` desaparecían, incluido el logo de una portada). `convert_pandoc` pasa por HTML cuando el origen es `.md` y el destino es `docx` o `txt` (los destinos pdf/jpg/png también, porque pasan por un docx intermedio): `pandoc x.md -t html` y luego `pandoc mid.html -f html`. Medido con un informe de 6800 líneas: tablas 71 a 135, imágenes 141 a 160, y los títulos, enlaces y bloques de código quedan igual; 6 s. Las imágenes relativas del `.md` se buscan junto al `.md` (`--resource-path`), así que **la carpeta `assets/` tiene que estar al lado**: un `.md` copiado a otra carpeta sin sus imágenes sale con el texto alternativo en su lugar (y pandoc avisa por stderr, que la app no muestra). El tamaño de hoja, el centrado y los saltos de página se explican abajo.
+A `.md` with `<table>`, `<img>`, `<br>` or `<b>` inside, converted directly to docx, loses that HTML: pandoc leaves it as raw HTML and the docx writer drops it (HTML tables came out as loose paragraphs and `<img>` images disappeared, including the logo of a cover page). `convert_pandoc` goes through HTML when the source is `.md` and the target is `docx` or `txt` (the pdf/jpg/png targets too, because they go through an intermediate docx): `pandoc x.md -t html` and then `pandoc mid.html -f html`. Measured with a 6800-line report: tables from 71 to 135, images from 141 to 160, and the headings, links and code blocks stay the same; 6 s. The relative images of the `.md` are looked up next to the `.md` (`--resource-path`), so **the `assets/` folder has to be beside it**: a `.md` copied to another folder without its images comes out with the alternative text in their place (and pandoc warns on stderr, which the app does not show). The page size, the centering and the page breaks are explained below.
 
-## PDF a docx: límites
+## PDF to docx: limits
 
-`pdf → docx` usa el filtro `writer_pdf_import` de LibreOffice, que no reconstruye el texto: cada línea queda en un cuadro de texto suelto con la posición del PDF. En un PDF de 195 páginas generado por Chrome desde un `.md` salió un docx de 47 MB con casi 10 000 cuadros de texto, sin títulos, tablas ni enlaces, 147 s de conversión, y LibreOffice no logró volver a abrirlo y renderizarlo en 10 minutos. El texto está completo, pero al renderizar el final de varias líneas sale cortado (`1ASI0732` como `1ASI073`) y se pierden las negritas. Sirve para documentos cortos y simples; para un informe largo conviene convertir desde el `.md`, el `.docx` o el original editable.
+`pdf → docx` uses the `writer_pdf_import` filter of LibreOffice, which does not rebuild the text: each line ends up in a loose text box at the position it had in the PDF. A 195-page PDF generated by Chrome from a `.md` came out as a 47 MB docx with almost 10,000 text boxes, with no headings, tables or links, 147 s of conversion, and LibreOffice could not open it again and render it in 10 minutes. The text is complete, but when rendered the end of several lines comes out cut off (`1ASI0732` as `1ASI073`) and the bold is lost. It is fine for short, simple documents; for a long report it is better to convert from the `.md`, the `.docx` or the editable original.
 
-## Formato de los docx: A4, centrado y saltos de página
+## Format of the docx files: A4, centering and page breaks
 
-Todo destino `docx` de pandoc (también el docx intermedio que usan pdf/jpg/png) lleva `--reference-doc` y `--lua-filter`, con dos archivos que van dentro del programa (`include_bytes!`/`include_str!` en `converters.rs`, fuentes en `src-tauri/assets/`):
+Every pandoc `docx` target (also the intermediate docx used by pdf/jpg/png) carries `--reference-doc` and `--lua-filter`, with two files that live inside the program (`include_bytes!`/`include_str!` in `converters.rs`, sources in `src-tauri/assets/`):
 
-- `reference-a4.docx`: hoja **A4** con márgenes de 2,5 cm (pandoc usa Carta por defecto) y el estilo de párrafo `Centered` (centrado). Se hizo con `pandoc -o x.docx --print-default-data-file reference.docx`, cambiando el `sectPr` de `word/document.xml` y añadiendo el estilo a `word/styles.xml`. Siempre A4; no depende del idioma.
-- `center.lua`: `<div align="center">` pasa al estilo `Centered`, y `<div style="page-break-before: always">` (o `page-break-after`) pasa a un salto de página (`openxml`). Ojo: al pasar de Markdown a HTML pandoc escribe `data-align`, no `align`, y el filtro mira los dos.
+- `reference-a4.docx`: an **A4** page with 2.5 cm margins (pandoc uses Letter by default) and the paragraph style `Centered` (centered). It was made with `pandoc -o x.docx --print-default-data-file reference.docx`, changing the `sectPr` of `word/document.xml` and adding the style to `word/styles.xml`. Always A4; it does not depend on the language.
+- `center.lua`: `<div align="center">` gets the `Centered` style, and `<div style="page-break-before: always">` (or `page-break-after`) becomes a page break (`openxml`). Note: when going from Markdown to HTML pandoc writes `data-align`, not `align`, and the filter looks at both.
 
-`<p align="center">` lo pierde pandoc al leerlo, así que `wrap_centered_paragraphs` lo envuelve en un `<div align="center">` en el HTML intermedio (solo la forma con comillas dobles; los `<h1 align=...>` y los `align` de `<td>` no se tocan). Una tabla de Markdown dentro de un div centrado no se centra (queda a la izquierda).
+pandoc loses `<p align="center">` when reading it, so `wrap_centered_paragraphs` wraps it in a `<div align="center">` in the intermediate HTML (only the form with double quotes; `<h1 align=...>` and the `align` of `<td>` are left alone). A Markdown table inside a centered div is not centered (it stays on the left).
 
-Probado con un informe de 6800 líneas: hoja A4, 11 saltos de página y 35 párrafos centrados; la portada queda centrada con su logo. Prueba manual con un archivo real: `MANDARINA_REAL=/ruta/archivo.md MANDARINA_FORMAT=docx cargo test archivo_real -- --ignored --nocapture` (crea el resultado junto al archivo).
+Tried with a 6800-line report: A4 page, 11 page breaks and 35 centered paragraphs; the cover comes out centered with its logo. Manual test with a real file: `MANDARINA_REAL=/path/file.md MANDARINA_FORMAT=docx cargo test archivo_real -- --ignored --nocapture` (it creates the result next to the file).

@@ -1,74 +1,73 @@
-# Herramientas
+# Tools
 
-Segunda rueda de la app, inspirada en la de herramientas de [[Referencia-Tangerine]]. Se abre desde un segmento **HERRAMIENTAS** de la rueda de conversión y solo con **un archivo** seleccionado (con varios no se ofrece). Comandos y tipos en [[Comandos-Tauri]]; interfaz en [[Rueda]]; Rust en `src-tauri/src/tools.rs`.
+The second wheel of the app, inspired by the tools wheel of [[Tangerine-Reference]]. It opens from a **TOOLS** segment of the conversion wheel and only with **one file** selected (it is not offered with several). Commands and types in [[Tauri-Commands]]; interface in [[Wheel]]; Rust in `src-tauri/src/tools.rs`.
 
-## Flujo de uso
+## Flow of use
 
-1. Rueda de conversión → segmento **HERRAMIENTAS** (último de la rueda; solo aparece si `get_tools` devuelve algo).
-2. Rueda de herramientas (mismo componente de rueda, otros segmentos). El centro del disco (o Escape) vuelve a la rueda anterior.
-3. Según la herramienta:
-   - sin opciones (**Reducir tamaño**, **Metadatos**, **Sin audio**, **ZIP**): se ejecuta directamente;
-   - con opciones (**Girar**, **Voltear**, **Redimensionar**): una tercera rueda con las opciones;
-   - con editor (**Recortar**): la ventana crece y se abre el editor visual (recuadro sobre la imagen, o forma de onda / fotogramas con dos extremos arrastrables para audio y vídeo); botones Aplicar y Cancelar.
-4. Tarjeta de progreso y "Listo ✓" en el centro, como en las conversiones.
+1. Conversion wheel → **TOOLS** segment (the last one of the wheel; it only appears if `get_tools` returns something).
+2. Tools wheel (the same wheel component, other segments). The center of the disc (or Escape) goes back to the previous wheel.
+3. Depending on the tool:
+   - without options (**Reduce size**, **Metadata**, **No audio**, **ZIP**): it runs directly;
+   - with options (**Rotate**, **Flip**, **Resize**): a third wheel with the options;
+   - with an editor (**Trim**): the window grows and the visual editor opens (a box over the image, or a waveform / frames with two draggable ends for audio and video); Apply and Cancel buttons.
+4. Progress card and "Done ✓" in the center, as in the conversions.
 
-## Herramientas por tipo (primera versión)
+## Tools by type (first version)
 
-| Tipo | Herramientas |
+| Type | Tools |
 |---|---|
-| imagen | reducir tamaño, metadatos, recortar (recuadro), girar, voltear, redimensionar, zip |
-| vídeo | reducir tamaño, metadatos, recortar (tiempo), girar, voltear, redimensionar, sin audio, zip |
-| audio | reducir tamaño, metadatos, recortar (tiempo), zip |
-| pdf | reducir tamaño (ghostscript), zip |
-| documento, presentación, hoja, subtítulos, svg, heic | solo zip |
-| comprimidos, carpetas y tipos desconocidos | ninguna (no sale el segmento) |
+| image | reduce size, metadata, trim (box), rotate, flip, resize, zip |
+| video | reduce size, metadata, trim (time), rotate, flip, resize, no audio, zip |
+| audio | reduce size, metadata, trim (time), zip |
+| pdf | reduce size (ghostscript), zip |
+| document, presentation, spreadsheet, subtitles, svg, heic | zip only |
+| archives, folders and unknown types | none (the segment does not show) |
 
-Si un tipo solo tiene una herramienta (pdf), la rueda de conversión muestra ese segmento directamente (p. ej. ZIP en un documento) en vez de HERRAMIENTAS.
+If a type has only one tool, the conversion wheel shows that segment directly (e.g. ZIP on a document) instead of TOOLS.
 
-## Reglas
+## Rules
 
-- La salida va junto al original, **mismo formato**, con un sufijo: `nombre (comprimido).ext`, `(sin metadatos)`, `(recortado)`, `(girado)`, `(volteado)`, `(redimensionado)`, `(sin audio)`; si existe, `nombre (comprimido) 2.ext`. Nunca se sobrescribe.
-- Un solo nivel de compresión, equilibrado.
-- **Nombre del archivo nuevo (solo en Recortar):** los tres editores tienen un campo de texto, con valor inicial `nombre (recortado)` y la extensión del original en gris a su derecha. Se valida en vivo (vacío, `/`, `.`, `..`, más de 200 caracteres) y Aplicar se desactiva si no vale. El editor devuelve `nombre` junto a los demás parámetros y `run_tool` lo usa (`custom_name`, `output_path_named`): conserva la extensión del original, quita la que escriba el usuario al final y nunca sobrescribe (`nombre 2.ext`). Enter dentro del campo aplica.
-- Las herramientas de ffmpeg emiten `convert-progress` y se pueden cancelar con `cancel`, como las conversiones.
-- Programas: ImageMagick, ffmpeg y ghostscript (`gs`). No hace falta exiftool.
+- The output goes next to the original, in the **same format**, with a suffix: `name (compressed).ext`, `(no metadata)`, `(trimmed)`, `(rotated)`, `(flipped)`, `(resized)`, `(no audio)` (they change with the language, see [[Languages]]); if it exists, `name (compressed) 2.ext`. It is never overwritten.
+- A single compression level, balanced.
+- **Name of the new file (Trim only):** the three editors have a text field, with the initial value `name (trimmed)` and the extension of the original in gray at its right. It is validated live (empty, `/`, `.`, `..`, more than 200 characters) and Apply is disabled if it is not valid. The editor returns `nombre` along with the other parameters and `run_tool` uses it (`custom_name`, `output_path_named`): it keeps the extension of the original, removes the one the user types at the end and never overwrites (`name 2.ext`). Enter inside the field applies.
+- The ffmpeg tools emit `convert-progress` and can be cancelled with `cancel`, like the conversions.
+- Programs: ImageMagick, ffmpeg and ghostscript (`gs`). exiftool is not needed.
 
-## Cómo se hace cada herramienta (medido en esta máquina)
+## How each tool is done (measured on this machine)
 
-| Herramienta | Comando elegido | Resultado medido |
+| Tool | Chosen command | Measured result |
 |---|---|---|
-| imagen: comprimir jpg | `magick -auto-orient -strip -quality 75 -sampling-factor 4:2:0 -interlace Plane` | 843 KB → 175 KB |
-| imagen: comprimir webp / avif / png / tiff / gif | `-quality 75` / `-quality 60` / `png:compression-level=9`+filtro y estrategia / `-compress zip` / `-layers Optimize` | avif 1,4 MB → 70 KB; png de captura 50 → 21 KB, pero con fotos casi no ahorra; tiff y gif ahorran poco |
-| imagen: metadatos, recortar, girar, voltear, redimensionar | `-auto-orient -strip`; `-crop WxH+X+Y +repage`; `-rotate`; `-flop`/`-flip`; `-resize N%` o `Nx>` (no amplía) | comprobado con medidas y píxeles |
-| vídeo: comprimir | libx264 crf 28 + aac 128k (mp4, mov, mkv); libx264 + libmp3lame (avi); libvpx-vp9 crf 33 + opus (webm, lento); wmv2 | 7,9 MB → 2,0 MB |
-| vídeo: metadatos / sin audio | `-map_metadata -1 -map_chapters -1 -c copy` / `-map 0:v -c copy` | sin recodificar |
-| vídeo: recortar | `-ss S -i ... -t D` y **recodifica** | corte exacto al fotograma |
-| vídeo: girar, voltear, redimensionar | `transpose`, `hflip`/`vflip`, `scale` con dimensiones pares (sin ampliar) | el audio se copia |
-| audio: comprimir | mp3 libmp3lame 128k; m4a aac 128k; ogg libvorbis q4; opus 96k; wma 128k | mp3 803 → 321 KB |
-| audio: metadatos / recortar | `-map_metadata -1 -c copy` / `-ss -i -t -c copy` | recorte con precisión de unos 25 ms (flac se recodifica) |
-| pdf: comprimir | `gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook` (salida a un temporal) | 5,1 MB → 131 KB |
+| image: reduce jpg | `magick -auto-orient -strip -quality 75 -sampling-factor 4:2:0 -interlace Plane` | 843 KB → 175 KB |
+| image: reduce webp / avif / png / tiff / gif | `-quality 75` / `-quality 60` / `png:compression-level=9` + filter and strategy / `-compress zip` / `-layers Optimize` | avif 1.4 MB → 70 KB; screenshot png 50 → 21 KB, but with photos it hardly saves anything; tiff and gif save little |
+| image: metadata, trim, rotate, flip, resize | `-auto-orient -strip`; `-crop WxH+X+Y +repage`; `-rotate`; `-flop`/`-flip`; `-resize N%` or `Nx>` (does not enlarge) | checked with measurements and pixels |
+| video: reduce | libx264 crf 28 + aac 128k (mp4, mov, mkv); libx264 + libmp3lame (avi); libvpx-vp9 crf 33 + opus (webm, slow); wmv2 | 7.9 MB → 2.0 MB |
+| video: metadata / no audio | `-map_metadata -1 -map_chapters -1 -c copy` / `-map 0:v -c copy` | not re-encoded |
+| video: trim | `-ss S -i ... -t D` and it **re-encodes** | frame-exact cut |
+| video: rotate, flip, resize | `transpose`, `hflip`/`vflip`, `scale` with even dimensions (does not enlarge) | the audio is copied |
+| audio: reduce | mp3 libmp3lame 128k; m4a aac 128k; ogg libvorbis q4; opus 96k; wma 128k | mp3 803 → 321 KB |
+| audio: metadata / trim | `-map_metadata -1 -c copy` / `-ss -i -t -c copy` | trim accurate to about 25 ms (flac is re-encoded) |
+| pdf: reduce | `gs -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook` (output to a temporary file) | 5.1 MB → 131 KB |
 
-## Decisiones
+## Decisions
 
-- Si el resultado no pesa menos del 98 % del original, se borra y se devuelve `Err("Ya está optimizado")` (la interfaz lo muestra como aviso suave).
-- **COMPRIMIR no se ofrece** en wav, flac, aiff (sin pérdida) ni bmp: no hay forma de comprimirlos sin perder calidad o formato.
-- `get_tools` devuelve vacío para svg, heic y heif (ImageMagick no los escribe con la misma extensión o son vectoriales).
-- Comprimir audio descarta la carátula incrustada; comprimir y recortar vídeo dejan solo la primera pista de vídeo y las de audio, sin subtítulos.
-- Quitar metadatos de una imagen también quita el perfil ICC.
-- Vídeos con rotación por metadato: `media_info` intercambia ancho y alto, y ffmpeg aplica la rotación al recodificar.
-- Los mensajes de ffmpeg e ImageMagick salen con el prefijo "No se pudo aplicar la herramienta:" pero el detalle queda en inglés.
-- En la rueda de conversión, HERRAMIENTAS se descarta si ya hay 8 formatos de destino (pasa con formatos como aac o flv, que no están en su propia lista).
-- La rueda espera `get_tools` hasta 400 ms; si no llega, se pinta sin el segmento.
+- If the result does not weigh less than 98% of the original, it is deleted and an `[optimized] Already optimized` error is returned (the interface shows it as a soft notice). The `[optimized]` and `[cancelled]` codes do not change with the language (see [[Languages]]).
+- **REDUCE SIZE is not offered** for wav, flac, aiff (lossless) or bmp: there is no way to compress them without losing quality or format.
+- `get_tools` returns empty for svg, heic and heif (ImageMagick does not write them with the same extension, or they are vector formats).
+- Reducing audio drops the embedded cover art; reducing and trimming video leave only the first video track and the audio ones, without subtitles.
+- Removing the metadata of an image also removes the ICC profile.
+- Videos with rotation by metadata: `media_info` swaps width and height, and ffmpeg applies the rotation when re-encoding.
+- The ffmpeg and ImageMagick messages come out with the prefix "Could not apply the tool:" but the detail stays in English.
+- In the conversion wheel, TOOLS is dropped if there are already 8 target formats (it happens with formats such as aac or flv, which are not in their own list).
+- The wheel waits for `get_tools` for up to 400 ms; if it does not arrive, it is painted without the segment.
 
-## Pruebas
+## Tests
 
-Parte de las 82 pruebas de `cargo test`: tabla de herramientas, nombres de salida, validación de parámetros, picos de la forma de onda, y integración con archivos reales (comprimir, metadatos, recortar, girar, voltear, redimensionar, sin audio, progreso y cancelar). **Sin probar:** la ventana real (`resize_center`, el editor con ratón), `convert` junto con herramientas, recortes de heic, svg y gif animado, vídeos con varias pistas de audio o subtítulos, y avif real de principio a fin.
+Part of the `cargo test` suite: table of tools, output names, parameter validation, waveform peaks, and integration with real files (reduce, metadata, trim, rotate, flip, resize, no audio, progress and cancel). **Untested:** the real window (`resize_center`, the editor with the mouse), `convert` together with tools, trims of heic, svg and animated gif, videos with several audio tracks or subtitles, and real avif end to end. See [[Manual-Testing]].
 
-## Pendiente / no incluido
+## Pending / not included
 
-Reproducir el audio o vídeo dentro del editor, recortar vídeo en el espacio (solo en el tiempo), herramientas para documentos y hojas, y ejecutar herramientas con varios archivos.
+Playing the audio or video inside the editor, trimming video in space (only in time), tools for documents and spreadsheets, and running tools with several files.
 
-- **Tarjeta de progreso con nombre personalizado:** si el editor devuelve `nombre`, la tarjeta de progreso muestra ese nombre (más la extensión del original, `nombreConExtension` en `src/main.js`) en vez del nombre del archivo de origen.
-
-- **Reducir tamaño no es zipear:** `compress` recodifica el archivo para que pese menos y lo deja en el mismo formato (su etiqueta pasó de COMPRIMIR a REDUCIR TAMAÑO / REDUCE SIZE; el id y el sufijo `(comprimido)` no cambiaron).
-- **ZIP (`zip`):** herramienta de cualquier archivo que no sea comprimido ni carpeta. Llama a `converters::pack`, que deja `nombre.zip` junto al original (nunca sobrescribe). Con varios archivos el mismo `pack` se usa desde la rueda de conversión, ver [[Conversores]].
+- **Progress card with a custom name:** if the editor returns `nombre`, the progress card shows that name (plus the extension of the original, `nombreConExtension` in `src/main.js`) instead of the name of the source file.
+- **Reducing size is not zipping:** `compress` re-encodes the file so that it weighs less and leaves it in the same format (its label went from COMPRIMIR to REDUCIR TAMAÑO / REDUCE SIZE; the id and the `(compressed)` suffix did not change).
+- **ZIP (`zip`):** a tool for any file that is not an archive or a folder. It calls `converters::pack`, which leaves `name.zip` next to the original (it never overwrites). With several files the same `pack` is used from the conversion wheel, see [[Converters]].

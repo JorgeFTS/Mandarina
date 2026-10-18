@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><title>Mandarina promo</title>
+<!-- Scene of the demo video. promo/build.sh loads it with ?t=<ms>; see docs/Promo-Video.md -->
+<link rel="stylesheet" href="../src/styles.css"><link rel="stylesheet" href="../src/editor.css"><link rel="stylesheet" href="../src/ajustes.css">
+<style id="oscuro">
+
+  :root {
+    --segmento: rgba(44, 44, 49, 0.92);
+    --segmento-borde: rgba(255, 255, 255, 0.09);
+    --texto: #f4efe9;
+    --suave: rgba(244, 239, 233, 0.62);
+    --disco: rgba(34, 34, 38, 0.88);
+    --tarjeta: rgba(40, 40, 45, 0.96);
+    --pildora: rgba(255, 255, 255, 0.12);
+    --sombra: rgba(0, 0, 0, 0.55);
+    --error-fondo: rgba(70, 30, 30, 0.97);
+    --error-texto: #ffb4aa;
+    --punteado: rgba(255, 255, 255, 0.4);
+    --circulo: rgba(30, 30, 34, 0.55);
+    --segmento-herr: rgba(58, 70, 88, 0.94);
+  }
+
+  .ed-raiz {
+    --ed-texto: var(--texto, #f4efe9);
+    --ed-suave: var(--suave, rgba(244, 239, 233, 0.62));
+    --ed-fondo: #26262b;
+    --ed-panel: rgba(255, 255, 255, 0.08);
+    --ed-borde: rgba(255, 255, 255, 0.16);
+    --ed-campo: #1b1b1f;
+    --ed-escena: #18181b;
+    --ed-atenuado: rgba(30, 30, 34, 0.74);
+    --ed-onda-fuera: rgba(244, 239, 233, 0.26);
+    --ed-error: #ffb4aa;
+    --ed-error-fondo: rgba(70, 30, 30, 0.97);
+    --ed-sombra: rgba(0, 0, 0, 0.55);
+  }
+
+</style>
+<style>
+html,body{background:#222}
+#mundo{position:fixed;inset:0;z-index:1;overflow:hidden;background:linear-gradient(135deg,#f7d9bd 0%,#ec9a73 40%,#7a5c9e 100%);font-family:system-ui,"Segoe UI",Roboto,sans-serif}
+#mundo .brillo{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5}
+#titulo,#fin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;text-align:center;opacity:0}
+#titulo img,#fin img{width:150px;height:150px;filter:drop-shadow(0 10px 24px rgba(60,20,0,.35))}
+#titulo h1,#fin h1{margin:0;font-size:76px;letter-spacing:1px;text-shadow:0 4px 18px rgba(60,20,0,.35)}
+#titulo p,#fin p{margin:0;font-size:30px;opacity:.95;text-shadow:0 2px 10px rgba(60,20,0,.35)}
+#fin .url{margin-top:10px;font-size:26px;background:rgba(255,255,255,.2);padding:8px 22px;border-radius:999px}
+#nautilus{position:absolute;left:190px;top:110px;width:900px;height:500px;border-radius:14px;background:#fafafa;box-shadow:0 30px 70px rgba(40,10,0,.4);overflow:hidden;opacity:0;color:#2e3436}
+#nautilus .barra{height:46px;background:#ebebeb;border-bottom:1px solid #d6d6d6;display:flex;align-items:center;padding:0 18px;font-weight:700;font-size:15px;gap:10px}
+#nautilus .barra i{width:12px;height:12px;border-radius:50%;background:#c0c0c0;display:inline-block}
+#nautilus .lateral{position:absolute;left:0;top:46px;bottom:0;width:170px;background:#f0f0f0;border-right:1px solid #dcdcdc;padding:16px 14px;font-size:14px;line-height:30px;color:#555}
+#nautilus .lateral b{color:#2e3436}
+.archivo{position:absolute;width:140px;height:130px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px;font-size:14px}
+.archivo.sel{background:#3584e4;color:#fff}
+.archivo svg{width:70px;height:70px}
+#teclas{position:absolute;left:50%;bottom:128px;transform:translateX(-50%);display:flex;gap:14px;align-items:center;opacity:0;color:#fff;font-size:28px;z-index:8}
+.tecla{min-width:86px;height:70px;padding:0 20px;border-radius:14px;background:#fff;color:#3a2a1d;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 #c9b9a8,0 12px 24px rgba(40,10,0,.3);font-size:32px}
+#leyenda{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);z-index:9;background:rgba(30,20,15,.78);color:#fff;font-size:30px;font-weight:600;padding:12px 30px;border-radius:999px;opacity:0;white-space:nowrap}
+#cursor{position:absolute;left:0;top:0;z-index:20;width:34px;height:34px;pointer-events:none;opacity:0;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35))}
+#onda{position:absolute;z-index:19;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:4px solid rgba(255,255,255,.95);opacity:0;pointer-events:none}
+#escenario{z-index:5;transition:none!important}
+#escenario *{animation:none!important}
+#vista-ajustes{z-index:6;inset:auto!important;left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;width:640px!important;height:670px!important;margin:-335px 0 0 -320px!important;animation:none!important;transition:none!important;background:transparent!important;border:0!important;box-shadow:none!important}
+#vista-ajustes .ed-raiz{box-shadow:0 30px 70px rgba(40,10,0,.45)}
+</style>
+<script src="../src/locales/pt.js" defer></script><script src="../src/locales/fr.js" defer></script>
+<script src="../src/i18n.js" defer></script>
+<script src="../src/geometria.js" defer></script><script src="../src/editor.js" defer></script><script src="../src/ajustes.js" defer></script>
+<script src="../src/main.js" defer></script><script src="scene.js" defer></script>
+</head><body>
+<div id="mundo">
+  <div class="brillo" style="width:520px;height:520px;left:-120px;top:-160px;background:#ffd9a8"></div>
+  <div class="brillo" style="width:560px;height:560px;right:-160px;bottom:-200px;background:#9f7bd0"></div>
+  <div id="titulo"><img src="../packaging/icon/mandarina.png" alt=""><h1>Mandarina</h1><p>Convert any file with a wheel</p></div>
+  <div id="nautilus"><div class="barra"><i></i><i></i><i></i><span style="margin-left:14px">Pictures</span></div><div class="lateral"><b>Home</b><br>Documents<br><b style="color:#3584e4">Pictures</b><br>Music<br>Videos<br>Downloads</div></div>
+  <div id="teclas"><div class="tecla">Alt</div><span>+</span><div class="tecla">M</div></div>
+  <div id="leyenda"></div>
+  <div id="fin"><img src="../packaging/icon/mandarina.png" alt=""><h1>Mandarina</h1><p>Free and open source · MIT</p><div class="url">github.com/JorgeFTS/Mandarina</div></div>
+</div>
+<main id="escenario">
+  <section id="inicio" hidden><div id="circulo" class="circulo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" /></svg><p data-i18n="home.drop"></p></div></section>
+  <section id="vista-rueda" hidden>
+    <svg id="rueda" viewBox="0 0 460 460" role="group"><circle class="disco" cx="230" cy="230" r="72" /><g id="segmentos"></g></svg>
+    <div id="centro"><div id="centro-icono"></div><div id="pildora" class="pildora"></div></div>
+    <button id="ajustes" class="ajustes" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" /></svg></button>
+  </section>
+  <section id="vista-tarjeta" hidden></section>
+</main>
+<section id="vista-editor" hidden><div id="editor-contenedor"></div></section>
+<section id="vista-ajustes" hidden><div id="ajustes-contenedor"></div></section>
+<div id="onda"></div>
+<svg id="cursor" viewBox="0 0 24 24"><path d="M4 2l15 10-6.5 1.4L16 21l-3 1.2-3.4-7.7L4 18z" fill="#111" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+</body></html>

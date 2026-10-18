@@ -1,81 +1,79 @@
-# Comandos Tauri
+# Tauri commands
 
-Funciones de Rust marcadas con `#[tauri::command]` en `src-tauri/src/lib.rs`, registradas en `invoke_handler`. El JS las llama con `window.__TAURI__.core.invoke(...)` (`withGlobalTauri` está activado, no hay bundler).
+Rust functions marked with `#[tauri::command]`, registered in `invoke_handler` in `src-tauri/src/lib.rs`. The JS calls them with `window.__TAURI__.core.invoke(...)` (`withGlobalTauri` is on, there is no bundler).
 
-Delegan el trabajo en [[Conversores]] y los usa la [[Rueda]].
+They delegate the work to [[Converters]] and [[Tools]], and the [[Wheel]] uses them.
 
-## Contrato
+## Contract
 
 ### `get_targets(path: String) -> Vec<String>`
-Formatos a los que se puede convertir el archivo, en el orden en que aparecen en la rueda. Lista vacía si el tipo no está soportado. Excluye el formato del propio archivo.
+Formats the file can be converted to, in the order they appear in the wheel, limited and ordered by the user's choice in the [[Settings]]. An empty list if the type is not supported. It excludes the file's own format. It also accepts folders: targets `zip`, `tar`, `tar.gz` (compress the folder).
 
 ### `convert(path: String, format: String) -> Result<String, String>`
-Convierte `path` a `format` (uno de los devueltos por `get_targets`). El archivo de salida se crea junto al original con el mismo nombre y la nueva extensión; si ya existe, se añade ` 2`, ` 3`... Devuelve la ruta de salida. En error devuelve un mensaje corto y legible para mostrar en la interfaz (por ejemplo, la herramienta que falta y cómo instalarla). Es asíncrono: no debe bloquear la interfaz.
+Converts `path` to `format` (one of those returned by `get_targets`). The output file is created next to the original with the same name and the new extension; if it already exists, ` 2`, ` 3`... is added. It returns the output path. On error it returns a short, readable message to show in the interface (for example, the missing tool and how to install it), in the active language. It is asynchronous: it must not block the interface.
 
-### Comandos de la rueda flotante (nuevos)
+### Floating wheel commands
 
-La app se lanza de dos formas: `mandarina /ruta/archivo` (desde el clic derecho de Nautilus) o sin argumentos (ventana pequeña a la que se arrastra un archivo). La ventana es transparente, sin bordes y siempre encima; la rueda se dibuja en el centro y la zona transparente de alrededor cierra la app al hacer clic.
+The app is launched in two ways: `mandarina /path/file` (from the Nautilus right click) or with no arguments (a small window onto which a file is dragged). The window is transparent, borderless and always on top; the wheel is drawn in the center and the transparent area around it closes the app when clicked.
 
-- `initial_path() -> Option<String>`: primer argumento de la línea de comandos si es una ruta existente (archivo o carpeta), si no `None`.
-- `file_info(path: String) -> Result<FileInfo, String>` con `FileInfo { name: String, size: u64, is_dir: bool }` (`size` en bytes; para carpetas, suma recursiva).
-- `show_wheel() -> ()`: muestra la ventana (que arranca oculta). Si la app se lanzó con archivos, la **agranda a mano hasta cubrir el monitor principal** (`set_position` + `set_size`, sin `set_fullscreen`) y transparente, solo para que la página reciba el cursor; si no, la centra.
-- `place_wheel(x: f64, y: f64) -> ()` (async): fija 460x460 y coloca la ventana con su centro en (x, y), la posición del cursor en píxeles de la página, dentro del monitor. Cambia el tamaño, espera 60 ms y repite la posición tres veces (`resize_and_move`): sin esa pausa el gestor de ventanas ignora el movimiento y la ventana se queda donde estaba. Es async para poder dormir sin bloquear el hilo principal. Ver [[Rueda]].
-- `get_language() -> String`: el código del idioma activo (`"en"`, `"es"`, `"pt"`, `"fr"`; ver [[Idiomas]]); la interfaz lo pide antes de pintar nada.
-- **Códigos de error estables:** los errores de cancelación y de "ya está optimizado" llegan como `"[cancelled] <texto>"` y `"[optimized] <texto>"` (el texto va en el idioma activo). La interfaz decide por el código, nunca por el texto.
-- `center_wheel() -> ()` (async, usa `resize_and_move`): fija 460x460 y centra la ventana en el monitor (para las tarjetas de mensajes).
-- `cancel() -> ()`: cancela la conversión en curso (mata el proceso hijo y borra la salida a medias). La `convert` pendiente termina con `Err("Cancelado")`.
-- `quit() -> ()`: cierra la app.
-- `get_targets` también acepta carpetas: destinos `zip`, `tar`, `tar.gz` (comprimir la carpeta).
+- `initial_paths() -> Vec<String>`: every command-line argument that does not start with `-`, as absolute paths, that exists, without duplicates and in the order received. An empty list if there is none.
+- `file_info(path: String) -> Result<FileInfo, String>` with `FileInfo { name: String, size: u64, is_dir: bool }` (`size` in bytes; for folders, a recursive sum).
+- `show_wheel() -> ()`: shows the window (which starts hidden). If the app was launched with files, it **enlarges it by hand until it covers the primary monitor** (`set_position` + `set_size`, without `set_fullscreen`) and transparent, only so that the page receives the cursor; otherwise it centers it.
+- `place_wheel(x: f64, y: f64) -> ()` (async): sets 460x460 and places the window with its center at (x, y), the cursor position in page pixels, inside the monitor. It changes the size, waits 60 ms and repeats the position three times (`resize_and_move`): without that pause the window manager ignores the move and the window stays where it was. It is async so it can sleep without blocking the main thread. See [[Wheel]].
+- `center_wheel() -> ()` (async, uses `resize_and_move`): sets 460x460 and centers the window on the monitor (for the message cards).
+- `resize_center(width: u32, height: u32) -> ()` (async, uses `resize_and_move`): puts the window at that **logical** size, centered on the monitor (for the editor and the settings). `center_wheel` still returns 460x460 for the cards.
+- `cancel() -> ()`: cancels the conversion in progress (kills the child process and deletes the half-written output). The pending `convert` ends with the `[cancelled]` error.
+- `quit() -> ()`: closes the app.
+- `get_language() -> String`: the code of the active language (`"en"`, `"es"`, `"pt"`, `"fr"`; see [[Languages]]); the interface asks for it before painting anything.
+- **Stable error codes:** the cancellation and "already optimized" errors arrive as `"[cancelled] <text>"` and `"[optimized] <text>"` (the text is in the active language). The interface decides by the code, never by the text.
 
-### Progreso real y miniatura (nuevos)
+### Real progress and thumbnail
 
-- **Evento `convert-progress`** (lo emite el backend con `app.emit` durante `convert`; la interfaz lo escucha con `window.__TAURI__.event.listen`). Payload: `{ "percent": number }`, de 0 a 100, creciente, como máximo unas 10 veces por segundo. Solo se emite en conversiones de ffmpeg (audio, vídeo, subtítulos) cuando se conoce la duración (con `ffprobe`); en el resto (ImageMagick, LibreOffice, pandoc...) no se emite nada y la interfaz mantiene la barra simulada. No se emite 100: lo marca el fin de `convert`. `convert` conserva la misma firma desde JS (`path`, `format`).
-- `thumbnail(path: String) -> Result<String, String>`: miniatura de unos 200 px de lado como **data URL** (`data:image/jpeg;base64,...`). Imágenes y SVG con ImageMagick/rsvg-convert, vídeo con un fotograma de ffmpeg, PDF y presentaciones con la primera página (pdftoppm; presentaciones, documentos y hojas no: solo PDF). Para cualquier otro tipo, o si tarda más de 3 s, devuelve `Err`. Es async, no usa el flag de cancelar y la interfaz debe llamarla sin bloquear la rueda: primero se muestra el icono y luego se sustituye por la miniatura si llega.
+- **`convert-progress` event** (emitted by the backend with `app.emit` during `convert`; the interface listens with `window.__TAURI__.event.listen`). Payload: `{ "percent": number }`, from 0 to 100, increasing, at most about 10 times per second. It is only emitted in ffmpeg conversions (audio, video, subtitles) when the duration is known (with `ffprobe`); in the rest (ImageMagick, LibreOffice, pandoc...) nothing is emitted and the interface keeps the simulated bar. 100 is never emitted: the end of `convert` marks it.
+- `thumbnail(path: String) -> Result<String, String>`: a thumbnail about 200 px on a side as a **data URL** (`data:image/jpeg;base64,...`). Images and SVG with ImageMagick/rsvg-convert, video with an ffmpeg frame, PDF with the first page (pdftoppm; presentations, documents and spreadsheets do not: only PDF). For any other type, or if it takes more than 3 s, it returns `Err`. It is async, does not use the cancel flag, and the interface must call it without blocking the wheel: the icon is shown first and replaced by the thumbnail if it arrives.
 
-### Varios archivos a la vez (nuevos)
+### Several files at once
 
-La app recibe todos los archivos seleccionados (`mandarina ruta1 ruta2 ...`). Los comandos de un solo archivo (`get_targets`, `convert`, `file_info`, `thumbnail`) siguen igual; estos se suman:
+The app receives all the selected files (`mandarina path1 path2 ...`). The single-file commands (`get_targets`, `convert`, `file_info`, `thumbnail`) stay the same; these are added:
 
-- `initial_paths() -> Vec<String>`: **sustituye a `initial_path`** (se elimina). Todos los argumentos que no empiecen por `-`, como rutas absolutas, que existan, sin duplicados y en el orden recibido. Lista vacía si no hay ninguno.
-- `get_targets_many(paths: Vec<String>) -> Vec<String>`: formatos para la rueda. Solo cuentan los archivos de un tipo soportado (los demás se ignoran aquí y aparecerán como fallidos al convertir). Un formato se ofrece si **todos** esos archivos lo admiten según la lista de destinos de su tipo (sin contar el formato propio) y **no todos** ya están en ese formato. Orden: el de la lista del primer archivo soportado. Con un solo archivo devuelve lo mismo que `get_targets`. Lista vacía si ningún archivo es soportado o no hay formatos en común.
-- `convert_many(paths: Vec<String>, format: String) -> Result<BatchResult, String>` (async). Convierte de uno en uno, cada resultado junto a su original (mismas reglas de nombres y de carpeta de páginas que `convert`). Los que ya están en ese formato se saltan. Si un archivo falla, sigue con el resto. `BatchResult { outputs: Vec<String>, skipped: Vec<String> (nombres), failed: Vec<{ name: String, error: String }> }`. Solo da `Err` si la lista está vacía o si se cancela (`Err("Cancelado")`; los resultados ya creados se conservan). Un archivo de tipo no soportado entra en `failed` con "Tipo de archivo no soportado".
-- Eventos durante `convert_many`:
-  - `convert-file` `{ "index": number, "total": number, "name": string }` al empezar cada archivo que se va a convertir (`index` desde 1; `total` = archivos a convertir, sin los saltados ni los no soportados).
-  - `convert-progress` `{ "percent": number }` **global**: `(archivos terminados + porcentaje del actual / 100) / total * 100`, creciente, máximo 99, como mucho unas 10 veces por segundo. Si el archivo actual no informa de su avance, el porcentaje solo salta al terminar cada archivo.
-- La interfaz usa `get_targets_many` siempre; para convertir, `convert` con 1 archivo (sin cambios) y `convert_many` con más de uno.
+- `get_targets_many(paths: Vec<String>) -> Vec<String>`: formats for the wheel. Only the files of a supported type count (the others are ignored here and will show up as failed when converting). A format is offered if **all** those files support it according to the target list of their type (counting the format itself) and **not all** of them are already in that format. Order: that of the list of the first supported file. With a single file it returns the same as `get_targets`. If none of the files is archive-type, `zip` is always offered (see [[Converters]]). An empty list if no file is supported or there is no format in common.
+- `convert_many(paths: Vec<String>, format: String) -> Result<BatchResult, String>` (async). It converts one by one, each result next to its original (same naming and page-folder rules as `convert`). Those already in that format are skipped. If a file fails, it goes on with the rest. `BatchResult { outputs: Vec<String>, skipped: Vec<String> (names), failed: Vec<{ name: String, error: String }> }`. It only gives `Err` if the list is empty or if it is cancelled (`[cancelled]`; the results already created are kept). A file of an unsupported type goes into `failed` with "Unsupported file type". With `zip`, `tar` or `tar.gz` and no archives among the files, all of them are packed into **one** archive (`pack`).
+- Events during `convert_many`:
+  - `convert-file` `{ "index": number, "total": number, "name": string }` when starting each file that is going to be converted (`index` from 1; `total` = files to convert, without the skipped or unsupported ones).
+  - **Global** `convert-progress` `{ "percent": number }`: `(finished files + percentage of the current one / 100) / total * 100`, increasing, 99 at most, at most about 10 times per second. If the current file does not report progress, the percentage only jumps when each file ends.
+- The interface always uses `get_targets_many`; to convert, `convert` with 1 file and `convert_many` with more than one.
 
-### Herramientas (nuevos; diseño en [[Herramientas]])
+### Tools (design in [[Tools]])
 
-Tipos serializados (JSON):
-- `ToolInfo { id: String, label: String, options: Vec<ToolOption>, editor: Option<String> }` con `editor` = `"crop"` (recuadro sobre una imagen) o `"trim"` (inicio y fin en tiempo) o `null`. `label` va en mayúsculas cortas para la rueda (p. ej. `"REDUCIR TAMAÑO"`).
+Serialized types (JSON):
+- `ToolInfo { id: String, label: String, options: Vec<ToolOption>, editor: Option<String> }` with `editor` = `"crop"` (a box over an image) or `"trim"` (start and end in time) or `null`. `label` is short uppercase for the wheel (e.g. `"REDUCE SIZE"`).
 - `ToolOption { id: String, label: String }`.
-- `MediaInfo { kind: String ("imagen" | "audio" | "video"), width: Option<u32>, height: Option<u32>, duration: Option<f64> }`. Las medidas de una imagen son **después de aplicar la orientación EXIF** (`-auto-orient`); el recorte se aplica sobre esa imagen orientada.
+- `MediaInfo { kind: String ("imagen" | "audio" | "video"), width: Option<u32>, height: Option<u32>, duration: Option<f64> }`. The measurements of an image are **after applying the EXIF orientation** (`-auto-orient`); the crop is applied on that oriented image.
 
-Comandos:
-- `get_tools(path: String) -> Vec<ToolInfo>` (sin error: lista vacía si no hay herramientas). Por tipo: imagen → `compress`, `strip_metadata`, `trim` (editor `crop`), `rotate`, `flip`, `resize`; vídeo → `compress`, `strip_metadata`, `trim` (editor `trim`), `rotate`, `flip`, `resize`, `mute`; audio → `compress`, `strip_metadata`, `trim` (editor `trim`); pdf → `compress`; el resto (documentos, hojas, subtítulos...) → solo `zip`; carpetas y comprimidos → vacía. Todos los tipos con herramientas terminan con `zip` (`run_tool` lo resuelve con `pack`). Labels: REDUCIR TAMAÑO, METADATOS, RECORTAR, GIRAR, VOLTEAR, REDIMENSIONAR, SIN AUDIO, ZIP. Opciones: `rotate` → `left` ("90° ↺"), `right` ("90° ↻"), `180` ("180°"); `flip` → `horizontal`, `vertical`; `resize` → ids `pct:75`, `pct:50`, `pct:25` ("75 %", "50 %", "25 %") y, en imagen, `w:1920`, `w:1280`, `w:800` ("1920 px"...) y, en vídeo, `h:1080`, `h:720`, `h:480` ("1080p"...). Máximo 8 opciones.
-- `run_tool(path: String, tool: String, option: Option<String>, params: Option<serde_json::Value>) -> Result<String, String>` (async; recibe además el `AppHandle` por dentro): ejecuta la herramienta y devuelve la **ruta del archivo de salida**. `params` solo para `trim`: audio/vídeo `{ "start": f64, "end": f64 }` en segundos (0 ≤ start < end ≤ duración); imagen (`crop`) `{ "x": u32, "y": u32, "w": u32, "h": u32 }` en píxeles de la imagen orientada, dentro de los límites. Opcionalmente, `params` puede llevar `"nombre": string`: el nombre del archivo nuevo **sin extensión** (la salida conserva la del original; si el usuario la escribe, se quita). Se limpia (espacios en los extremos) y se rechaza (`Err`) si queda vacío, lleva `/` o caracteres de control, es `.` o `..` o pasa de ~230 caracteres. Si ya existe un archivo con ese nombre se numera (`nombre 2.ext`), nunca se sobrescribe. Sin `nombre`, el nombre es el de siempre (`foto (recortado).jpg`). Valida y devuelve `Err` legible si algo no cuadra. Las de ffmpeg emiten `convert-progress` `{percent}` (0 a 99) y todas se cancelan con `cancel` (`Err("Cancelado")`, sin dejar salida a medias).
+Commands:
+- `get_tools(path: String) -> Vec<ToolInfo>` (no error: an empty list if there are no tools). By type: image → `compress`, `strip_metadata`, `trim` (editor `crop`), `rotate`, `flip`, `resize`; video → `compress`, `strip_metadata`, `trim` (editor `trim`), `rotate`, `flip`, `resize`, `mute`; audio → `compress`, `strip_metadata`, `trim` (editor `trim`); pdf → `compress`; the rest (documents, spreadsheets, subtitles...) → only `zip`; folders and archives → empty. Every type with tools ends with `zip` (`run_tool` resolves it with `pack`). Labels: REDUCE SIZE, METADATA, TRIM, ROTATE, FLIP, RESIZE, NO AUDIO, ZIP (translated by language). Options: `rotate` → `left` ("90° ↺"), `right` ("90° ↻"), `180` ("180°"); `flip` → `horizontal`, `vertical`; `resize` → ids `pct:75`, `pct:50`, `pct:25` ("75%", "50%", "25%") and, for images, `w:1920`, `w:1280`, `w:800` ("1920 px"...) and, for video, `h:1080`, `h:720`, `h:480` ("1080p"...). At most 8 options.
+- `run_tool(path: String, tool: String, option: Option<String>, params: Option<serde_json::Value>) -> Result<String, String>` (async; it also receives the `AppHandle` internally): runs the tool and returns the **path of the output file**. `params` only for `trim`: audio/video `{ "start": f64, "end": f64 }` in seconds (0 ≤ start < end ≤ duration); image (`crop`) `{ "x": u32, "y": u32, "w": u32, "h": u32 }` in pixels of the oriented image, inside the limits. Optionally, `params` may carry `"nombre": string`: the name of the new file **without extension** (the output keeps that of the original; if the user types it, it is removed). It is cleaned (spaces at the ends) and rejected (`Err`) if it ends up empty, contains `/` or control characters, is `.` or `..` or exceeds ~230 characters. If a file with that name already exists it is numbered (`name 2.ext`), never overwritten. Without `nombre`, the name is the usual one (`photo (trimmed).jpg`). It validates and returns a readable `Err` if something does not add up. The ffmpeg ones emit `convert-progress` `{percent}` (0 to 99) and all of them can be cancelled with `cancel` (`[cancelled]`, leaving no half-written output).
 - `media_info(path: String) -> Result<MediaInfo, String>`.
-- `preview_image(path: String, max_side: u32) -> Result<String, String>`: imagen orientada reducida a `max_side` px como data URL JPEG (para el editor de recorte). Máx. 3 s de espera de proceso.
-- `video_frame(path: String, seconds: f64, max_side: u32) -> Result<String, String>`: un fotograma como data URL JPEG.
-- `waveform(path: String, buckets: u32) -> Result<Vec<f32>, String>`: picos de amplitud entre 0.0 y 1.0, uno por cubo, para dibujar la forma de onda (de ~100 a 400 cubos).
-- `resize_center(width: u32, height: u32) -> ()` (async, usa `resize_and_move`): pone la ventana con ese tamaño **lógico** centrada en el monitor (para el editor). `center_wheel` sigue devolviendo 460x460 para las tarjetas.
+- `preview_image(path: String, max_side: u32) -> Result<String, String>`: the oriented image reduced to `max_side` px as a JPEG data URL (for the trim editor). A maximum process wait of 3 s.
+- `video_frame(path: String, seconds: f64, max_side: u32) -> Result<String, String>`: one frame as a JPEG data URL.
+- `waveform(path: String, buckets: u32) -> Result<Vec<f32>, String>`: amplitude peaks between 0.0 and 1.0, one per bucket, to draw the waveform (from ~100 to 400 buckets).
 
-Los editores no usan `convert`. Nombres de salida de las herramientas: ver [[Herramientas]].
+The editors do not use `convert`. Output names of the tools: see [[Tools]].
 
-### Contrato del editor visual (JS)
+### Contract of the visual editor (JS)
 
-Los archivos `src/editor.js` y `src/editor.css` los escribe otro agente que no toca `main.js`, `index.html` ni `styles.css`; `main.js` carga esos dos archivos y llama a:
+The files `src/editor.js` and `src/editor.css` do not touch `main.js`, `index.html` or `styles.css`; `main.js` loads those two files and calls:
 
 ```js
-// Devuelve una promesa: null si se cancela, o los params de run_tool si se aplica
-// ({x,y,w,h} para imagen, {start,end} para audio y vídeo, y siempre `nombre`: el texto del
-// campo "Nombre del archivo nuevo", sin extensión)
+// Returns a promise: null if cancelled, or the params of run_tool if applied
+// ({x,y,w,h} for an image, {start,end} for audio and video, and always `nombre`: the text of the
+// "New file name" field, without extension)
 window.Editor.abrir({
   tipo: "imagen" | "audio" | "video",
-  ruta: "/ruta/archivo",
-  nombre: "archivo.ext",
-  contenedor: HTMLElement,   // el editor se dibuja aquí dentro y lo vacía al terminar
-  api: {                      // funciones que devuelven promesas, con argumentos posicionales
+  ruta: "/path/file",
+  nombre: "file.ext",
+  contenedor: HTMLElement,   // the editor is drawn inside it and empties it when finished
+  api: {                      // functions that return promises, with positional arguments
     media_info(path),
     preview_image(path, maxSide),
     video_frame(path, seconds, maxSide),
@@ -84,25 +82,23 @@ window.Editor.abrir({
 }) -> Promise<object | null>
 ```
 
-El contenedor mide unos 740x560 px (la ventana es de 780x640). `Editor` dibuja sus propios botones **Aplicar** y **Cancelar**, soporta Escape (cancelar) y Enter (aplicar), modo claro/oscuro y teclado accesible (flechas mueven el extremo enfocado). No llama a `run_tool` ni cierra la ventana: eso lo hace `main.js`.
+The container measures about 740x560 px (the window is 780x640). `Editor` draws its own **Apply** and **Cancel** buttons, supports Escape (cancel) and Enter (apply), light/dark mode and accessible keyboard use (arrows move the focused end). It does not call `run_tool` or close the window: `main.js` does that.
 
-Nombres de salida: junto al original, `nombre.ext`; si existe, `nombre 2.ext`, `nombre 3.ext`... (con espacio, como en Mac; ya no `_1`). Las carpetas de páginas siguen `nombre_pages`, `nombre_pages 2`...
+Output names: next to the original, `name.ext`; if it exists, `name 2.ext`, `name 3.ext`... (with a space, as on the Mac; no longer `_1`). The page folders follow `name_pages`, `name_pages 2`...
 
-## Formatos
+## Formats
 
-La tabla completa de tipos y destinos está en [[Conversores]]. Para pdf, documento y presentación, jpg/png con varias páginas genera una carpeta de páginas y `convert` devuelve la ruta de la carpeta; con una sola página devuelve un archivo suelto.
+The full table of types and targets is in [[Converters]]. For pdf, document and presentation, jpg/png with several pages generates a folder of pages and `convert` returns the path of the folder; with a single page it returns a loose file.
 
-## Arrastrar y soltar
+## Drag and drop
 
-Tauri 2 intercepta el drop del sistema: el HTML5 `drop` no da la ruta. Se usa `getCurrentWebview().onDragDropEvent` (en global: `window.__TAURI__.webview.getCurrentWebview()`), que da `paths` y la posición en píxeles físicos (dividir entre `devicePixelRatio`).
+Tauri 2 intercepts the system drop: the HTML5 `drop` does not give the path. `getCurrentWebview().onDragDropEvent` is used (globally: `window.__TAURI__.webview.getCurrentWebview()`), which gives `paths` and the position in physical pixels (divide by `devicePixelRatio`).
 
-Estado: `get_targets` y `convert` implementados en `src-tauri/src/converters.rs` (ver [[Conversores]]). El comando `greet` de la plantilla ya se borró.
+## Settings (see [[Settings]])
 
-## Configuración (ver [[Configuracion]])
-
-- `get_config() -> Vec<KindFormats>`: por cada tipo configurable (`image`, `audio`, `video`, `pdf`, `document`, `spreadsheet`) devuelve `{ key, all, enabled, min, max }`: todos los formatos posibles, los visibles ahora en su orden, y los límites (3 y 8).
-- `set_formats(kind: String, formats: Vec<String>) -> Result<(), String>`: guarda los formatos visibles de un tipo; error si el tipo o un formato no existe, o si no son entre 3 y 8.
-- `reset_formats(kind: String) -> Result<(), String>`: vuelve a la lista de siempre de ese tipo.
-- `get_prefs() -> { language: "auto"|código, languages: [{ code, name }], accent: String, accents: Vec<String> }`: idioma y color guardados, los idiomas disponibles (de `LANGUAGES`) y los colores posibles.
-- `set_language(value: String)` (`"auto"` o un código de idioma; se aplica al momento con `lang::reload`) y `set_accent(value: String)` (uno de `accents`): guardan el ajuste; error si el valor no existe.
-- Efecto: `get_targets` y `get_targets_many` ya devuelven solo los formatos elegidos.
+- `get_config() -> Vec<KindFormats>`: for each configurable type (`image`, `audio`, `video`, `pdf`, `document`, `spreadsheet`) it returns `{ key, all, enabled, min, max }`: all the possible formats, the ones visible now in their order, and the limits (3 and 8).
+- `set_formats(kind: String, formats: Vec<String>) -> Result<(), String>`: saves the visible formats of a type; an error if the type or a format does not exist, or if they are not between 3 and 8.
+- `reset_formats(kind: String) -> Result<(), String>`: goes back to the usual list of that type.
+- `get_prefs() -> { language: "auto"|code, languages: [{ code, name }], accent: String, accents: Vec<String> }`: the saved language and color, the available languages (from `LANGUAGES`) and the possible colors.
+- `set_language(value: String)` (`"auto"` or a language code; applied immediately with `lang::reload`) and `set_accent(value: String)` (one of `accents`): they save the setting; an error if the value does not exist.
+- Effect: `get_targets` and `get_targets_many` already return only the chosen formats.

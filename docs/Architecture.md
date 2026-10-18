@@ -1,11 +1,12 @@
-# Arquitectura
+# Architecture
 
-Estado: plantilla de Tauri, sin lógica propia todavía.
+How the pieces connect. Related: [[Wheel]], [[Tauri-Commands]], [[Converters]], [[Tools]], [[Settings]], [[Languages]], [[Decisions]].
 
-Flujo previsto: el usuario suelta un archivo en [[Rueda]] → el JS llama a un comando de [[Comandos-Tauri]] con la ruta y el formato → Rust ejecuta la conversión en [[Conversores]] → devuelve éxito o error a la interfaz.
+Flow: the user drops a file on the [[Wheel]] (or opens it from Nautilus) → the JS calls a command from [[Tauri-Commands]] with the path and the format → Rust runs the conversion in [[Converters]] (system tools such as ffmpeg, ImageMagick, pandoc, LibreOffice) → it returns the result path or an error to the interface.
 
-Carpetas:
-- `src/`: `index.html`, `styles.css`, `main.js`.
-- `src-tauri/src/`: `lib.rs` (comandos y arranque), `main.rs` (solo llama a `lib.rs`).
+Folders:
+- `src/`: `index.html`, `styles.css`, `geometria.js` (wheel geometry), `main.js` (wheel, cards and flow), `editor.js` (trim editors), `ajustes.js` (settings screen), `i18n.js` and `locales/` (translations).
+- `src-tauri/src/`: `lib.rs` (startup and command registration), `converters.rs`, `tools.rs`, `wheel.rs` (window and wheel commands), `thumbnail.rs`, `lang.rs` and `config.rs`. `main.rs` only calls `lib.rs`.
+- `src-tauri/locales/` and `src-tauri/assets/`: translation catalogs for the backend, and the reference document and filter used for docx files.
 
-Ver [[Decisiones]].
+See [[Decisions]].

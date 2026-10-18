@@ -1,27 +1,27 @@
-# Nautilus (clic derecho)
+# Nautilus (right click)
 
-Archivos: `packaging/nautilus/mandarina-script` (script; el instalador lo copia como `Convert with Mandarina`, `Convertir con Mandarina`, `Converter com Mandarina` o `Convertir avec Mandarina` según el idioma, ver [[Idiomas]]) y `packaging/install-nautilus.sh` (instalador). Lanza la app con las rutas de los elementos seleccionados, que abre la rueda del flujo A de la [[Rueda]].
+Files: `packaging/nautilus/mandarina-script` (the script; the installer copies it as `Convert with Mandarina`, `Convertir con Mandarina`, `Converter com Mandarina` or `Convertir avec Mandarina` depending on the language, see [[Languages]]) and `packaging/install-nautilus.sh` (the installer). It launches the app with the paths of the selected items, which opens flow A of the [[Wheel]].
 
-- El script usa `$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS` (o `$1`), exporta `GDK_BACKEND=x11` (con un archivo la ventana empieza cubriendo el monitor, transparente, para detectar el cursor y luego se encoge junto a él; ver [[Rueda]]) y busca el binario en `MANDARINA_BIN`, luego `mandarina` en el PATH y por último la ruta que escribe el instalador.
-- El instalador copia el script a `~/.local/share/nautilus/scripts/`, sustituye `__MANDARINA_BIN__` por la ruta absoluta del binario y es idempotente. Elige el nombre con la misma regla de idioma de la app (`MANDARINA_LANG`, `LC_ALL`, `LC_MESSAGES`, `LANGUAGE`, `LANG`), **borra el script del otro idioma** para no dejar dos entradas y sus mensajes salen en el idioma activo. Para desinstalar: borrar ese archivo.
-- **Atajo de teclado:** el instalador escribe `<Alt>m Convert with Mandarina` (o el nombre del idioma que toque) en `~/.config/nautilus/scripts-accels` (cambiar con `MANDARINA_ATAJO="<Control><Alt>m" packaging/install-nautilus.sh`). Se selecciona el archivo en Nautilus y se pulsa el atajo. Nautilus lee ese archivo al arrancar: tras instalar hay que ejecutar `nautilus -q`.
-- También se ve en clic derecho > Scripts.
-- Formato de `scripts-accels` deducido, sin confirmar en la documentación: una línea `acelerador nombre del script`. Al instalar se quita la línea de cualquiera de los dos nombres y se deja el resto.
+- The script uses `$NAUTILUS_SCRIPT_SELECTED_FILE_PATHS` (or `$1`), exports `GDK_BACKEND=x11` (with a file, the window starts covering the monitor, transparent, to detect the cursor and then shrinks next to it; see [[Wheel]]) and looks for the binary in `MANDARINA_BIN`, then `mandarina` in the PATH and finally the path written by the installer.
+- The installer copies the script to `~/.local/share/nautilus/scripts/`, replaces `__MANDARINA_BIN__` with the absolute path of the binary and is idempotent. It picks the name with the same language rule as the app (`MANDARINA_LANG`, the language saved in the settings, `LC_ALL`, `LC_MESSAGES`, `LANGUAGE`, `LANG`), **deletes the scripts of the other languages** so there are never two entries, and its messages come out in the active language. To uninstall: delete that file.
+- **Keyboard shortcut:** the installer writes `<Alt>m Convert with Mandarina` (or the name of the language in use) in `~/.config/nautilus/scripts-accels` (change it with `MANDARINA_ATAJO="<Control><Alt>m" packaging/install-nautilus.sh`). Select the file in Nautilus and press the shortcut. Nautilus reads that file at startup: after installing, run `nautilus -q`.
+- It also shows up under right click > Scripts.
+- Format of `scripts-accels` inferred, not confirmed in the documentation: one line `accelerator script name`. When installing, the line of any of the names is removed and the rest is left alone.
 
-## Binario independiente
+## Standalone binary
 
-El script lanza el binario directamente, sin `npm run tauri dev`. Ese binario debe llevar `src/` incluido: compilar con
+The script launches the binary directly, without `npm run tauri dev`. That binary must include `src/`: build with
 
 ```
 npm run tauri build -- --debug --no-bundle
 ```
 
-(un `cargo build` normal no incluye el frontend). El resultado queda en `src-tauri/target/debug/mandarina`. Hay que recompilar así cada vez que cambie `src/`.
+(a plain `cargo build` does not include the frontend). The result is `src-tauri/target/debug/mandarina`. Rebuild like this every time `src/` changes.
 
-## Limitaciones
+## Limitations
 
-- Se pasan **todos** los archivos seleccionados (`NAUTILUS_SCRIPT_SELECTED_FILE_PATHS` separado por saltos de línea, cada uno como un argumento; conserva espacios y comillas). Las carpetas se pueden comprimir (zip, tar, tar.gz).
-- El escritorio de Ubuntu usa una extensión propia para los iconos: hay que comprobar si muestra los scripts al hacer clic derecho sobre un archivo del escritorio.
-- Si se lanza desde la terminal de un VS Code instalado con snap, hay que limpiar su entorno (ver [[Decisiones]]).
+- **All** the selected files are passed (`NAUTILUS_SCRIPT_SELECTED_FILE_PATHS` separated by newlines, each one as an argument; it keeps spaces and quotes). Folders can be compressed (zip, tar, tar.gz).
+- The Ubuntu desktop uses its own extension for icons: it needs to be checked whether it shows the scripts when right-clicking a file on the desktop.
+- If it is launched from the terminal of a VS Code installed with snap, its environment has to be cleaned (see [[Decisions]]).
 
-Relacionado: [[Arquitectura]].
+Related: [[Architecture]].

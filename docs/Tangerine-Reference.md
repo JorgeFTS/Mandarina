@@ -1,22 +1,22 @@
-# Referencia: Tangerine for Mac
+# Reference: Tangerine for Mac
 
-Fuente: press kit y video de demo en `~/Downloads/` (Leap Studio, v1.4, $29.99, solo Mac Apple silicon, 100 % offline). Es solo inspiración de comportamiento: no copiar sus imágenes, icono, textos ni diseño exacto.
+Source: press kit and demo video in `~/Downloads/` (Leap Studio, v1.4, $29.99, Mac Apple silicon only, 100% offline). It is inspiration for behavior only: do not copy their images, icon, texts or exact design.
 
-## Comportamiento
+## Behavior
 
-- Al arrastrar un archivo aparece una rueda junto al cursor. **Tres teclas, tres ruedas:** Shift = conversiones, Command = herramientas de archivo, Control = acciones de archivo. La rueda sigue abierta al soltar la tecla.
-- Se suelta el archivo sobre un segmento. Después sale una tarjeta flotante de progreso ("Converting to MP3", barra, X para cancelar) y el resultado aparece junto al original con nombre `sample 2.mp3`.
-- Centro de la rueda: miniatura del archivo y píldora con el tamaño (2.4 MB); al pasar sobre un segmento muestra el formato. El segmento resaltado se pone naranja.
+- When a file is dragged, a wheel appears next to the cursor. **Three keys, three wheels:** Shift = conversions, Command = file tools, Control = file actions. The wheel stays open when the key is released.
+- The file is dropped on a segment. Then a floating progress card appears ("Converting to MP3", bar, X to cancel) and the result appears next to the original with the name `sample 2.mp3`.
+- Center of the wheel: thumbnail of the file and a pill with the size (2.4 MB); hovering a segment shows the format. The highlighted segment turns orange.
 
-## Contenido de cada rueda
+## Content of each wheel
 
-- **Conversión (imagen):** JPG, WEBP, HEIC, TIFF, AVIF, BMP, PDF, DOCX (8 segmentos). Audio: MP3, M4A, FLAC, OGG, OPUS, AIFF (6).
-- **Herramientas (imagen):** COMPRESS, METADATA, EDIT, ANNOTATE, ADD BG, CROP, REDACT, con icono y etiqueta.
-- **Ventanas de herramienta:** Edit Photo (deslizadores de exposición, contraste, sombras, temperatura...), Add BG (fondos, padding, esquinas, sombra, proporción), Trim Audio (forma de onda con extremos arrastrables), Convert Audio Channels (mono/estéreo), Bleep.
-- **Control (acciones de archivo):** no aparece en el kit.
+- **Conversion (image):** JPG, WEBP, HEIC, TIFF, AVIF, BMP, PDF, DOCX (8 segments). Audio: MP3, M4A, FLAC, OGG, OPUS, AIFF (6).
+- **Tools (image):** COMPRESS, METADATA, EDIT, ANNOTATE, ADD BG, CROP, REDACT, each with an icon and a label.
+- **Tool windows:** Edit Photo (sliders for exposure, contrast, shadows, temperature...), Add BG (backgrounds, padding, corners, shadow, aspect ratio), Trim Audio (waveform with draggable ends), Convert Audio Channels (mono/stereo), Bleep.
+- **Control (file actions):** it does not appear in the kit.
 
-## Qué implica para Mandarina en Linux
+## What this means for Mandarina on Linux
 
-- Wayland no permite detectar arrastres globales ni Shift/Ctrl fuera de la ventana: las tres ruedas se abrirían desde el clic derecho (tres entradas o un submenú) o con la rueda visible en nuestra ventana. Ver [[Decisiones]].
-- Orden previsto: 1) rueda de conversión ([[Rueda]], [[Conversores]]), 2) tarjeta de progreso con cancelar, 3) rueda de herramientas (hecha: ver [[Herramientas]]).
-- Nombre: "Mandarina" es la traducción de "Tangerine". Conviene pensar si hay riesgo de confusión de marca antes de publicar.
+- Wayland does not allow detecting global drags or Shift/Ctrl outside the window: the three wheels would open from the right click (three entries or a submenu) or with the wheel visible in our window. See [[Decisions]].
+- Planned order: 1) conversion wheel ([[Wheel]], [[Converters]]), 2) progress card with cancel, 3) tools wheel (done: see [[Tools]]).
+- Name: "Mandarina" is the Spanish translation of "Tangerine". It is worth thinking about whether there is a risk of trademark confusion before publishing.

@@ -1,45 +1,44 @@
-# Publicar
+# Publishing
 
-Notas de empaquetado y de preparación del repositorio para GitHub. Relacionado: [[Nautilus]], [[Decisiones]], [[Inicio]].
+Notes on packaging and on preparing the repository for GitHub. Related: [[Nautilus]], [[Decisions]], [[Home]], [[Manual-Testing]].
 
-## Repositorio
+## Repository
 
-- `git init -b main` hecho; sin commit, sin remoto. `.gitignore` ignora `node_modules/`, `src-tauri/target/` y `src-tauri/gen/` (Tauri regenera `gen/schemas` al compilar; `Cargo.lock` sí se versiona) y `.claude/`. También se ignoran `test-files/` (archivos de prueba personales, 170 MB), `*.deb`/`*.rpm`/`*.AppImage`, `.env*` y, por decisión del autor, `CLAUDE.md` y `SKILLS.md` (notas para trabajar con Claude Code; siguen en el disco pero no se publican).
-- Licencia **MIT** (`LICENSE`, con "Copyright (c) 2026 JorgeFTS", el nombre de usuario de git; se puede cambiar por el nombre completo; también en `Cargo.toml` y `package.json`).
-- Pendientes del autor: URL del repositorio (en `Cargo.toml` hay un `repository` comentado), autor real en `authors` (ahora "Autores de Mandarina"), y si el nombre "Mandarina" (traducción de "Tangerine") puede confundirse con la marca de Leap Studio.
-- El registro de depuración temporal (`/tmp/mandarina-debug.log`) ya se quitó.
+- Published at https://github.com/JorgeFTS/Mandarina (branch `main`, first commit `b8e1f48`; `repository` is set in `Cargo.toml`). Commits carry no co-author lines. `.gitignore` ignores `node_modules/`, `src-tauri/target/` and `src-tauri/gen/` (Tauri regenerates `gen/schemas` when building; `Cargo.lock` is versioned) and `.claude/`. It also ignores `test-files/` (personal test files, 170 MB), `*.deb`/`*.rpm`/`*.AppImage`, `.env*` and, by the author's decision, `CLAUDE.md` and `SKILLS.md` (notes for working with Claude Code; they stay on disk but are not published).
+- **MIT** license (`LICENSE`, with "Copyright (c) 2026 JorgeFTS", the git username; it can be changed to a full name; also in `Cargo.toml` and `package.json`).
+- Pending for the author: a real author in `authors` (now "Autores de Mandarina"), and whether the name "Mandarina" (the Spanish translation of "Tangerine") can be confused with the Leap Studio brand.
+- The temporary debug log (`/tmp/mandarina-debug.log`) has been removed.
+- The READMEs are `README.md` (English, the one GitHub shows) and `README.es.md` (Spanish). See [[Languages]].
+- Package metadata (`Cargo.toml` `[package]` and `bundle` in `tauri.conf.json`) is in English. The `.desktop` of the `.deb` is also English only (Tauri does not localize the name or the comment without its own `desktopTemplate`; this has not been done). `ghostscript` was added to `Recommends` because reducing the size of a PDF needs it.
 
-- Los README son `README.md` (inglés, el que muestra GitHub) y `README.es.md` (español); `README.en.md` ya no existe. Ver [[Idiomas]].
-- Metadatos del paquete (`Cargo.toml` `[package]` y `bundle` de `tauri.conf.json`) en inglés. El `.desktop` del `.deb` también queda solo en inglés (Tauri no localiza el nombre ni el comentario sin una plantilla `desktopTemplate` propia; no se ha hecho). Se añadió `ghostscript` a `Recommends` porque comprimir PDF lo necesita.
+## Icon
 
-## Icono
+`packaging/icon/mandarina.svg` (made by hand) → 1024x1024 `mandarina.png` with `rsvg-convert` → `npx tauri icon packaging/icon/mandarina.png`. The `icons/android` and `icons/ios` folders that the command generates were deleted, because they are not used. To change the icon, repeat those steps.
 
-`packaging/icon/mandarina.svg` (hecho a mano) → `mandarina.png` de 1024x1024 con `rsvg-convert` → `npx tauri icon packaging/icon/mandarina.png`. Se borraron las carpetas `icons/android` e `icons/ios` que genera el comando, porque no se usan. Para cambiar el icono hay que repetir esos pasos.
+## Release build and .deb
 
-## Compilación de release y .deb
+Rebuilt on 2026-10-18 with the current code (languages, settings and `assets/` included) in the normal `src-tauri/target/`; the measurements of the first table are from the first test:
 
-Probado con `CARGO_TARGET_DIR` propio, fuera del repo:
-
-| Paso | Resultado |
+| Step | Result |
 |---|---|
-| `npm run tauri build -- --no-bundle` | OK, 1 min 52 s desde cero (LTO). Binario de 6.2 MB (la compilación de depuración pesa ~250 MB). |
-| `npm run tauri build -- --bundles deb` | OK, 1 min 07 s. `Mandarina_0.1.0_amd64.deb` de 2.4 MB. |
-| Arranque del binario release (`medir.sh`) | 1ª ejecución en frío ~2.9 s hasta la rueda lista; siguientes ~0.9 a 1.1 s. Ventana a pantalla completa a los ~0.5 s. |
+| `npm run tauri build -- --no-bundle` | OK, 1 min 52 s from scratch (LTO). 6.2 MB binary (the debug build weighs ~250 MB). |
+| `npm run tauri build -- --bundles deb` | OK, 1 min 07 s. `Mandarina_0.1.0_amd64.deb` of 2.4 MB (2.57 MiB, package name `mandarina`, with the current code). |
+| Release binary startup (`medir.sh`) | 1st cold run ~2.9 s until the wheel is ready; next ones ~0.9 to 1.1 s. Full-screen window at ~0.5 s. |
 
-El `.deb` contiene `usr/bin/mandarina`, `usr/share/applications/Mandarina.desktop` (categoría Utility, `Exec=mandarina`) e iconos hicolor (32, 128 y 256@2). **No instala** el script de Nautilus ni el atajo: `packaging/install-nautilus.sh` sigue siendo manual, y se le puede pasar `/usr/bin/mandarina`. Se podría añadir un script de postinstalación, pero tocaría `~/.local` de cada usuario y no se hace.
+The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/mandarina` (6.5 MB), `usr/share/applications/Mandarina.desktop` (category Utility, `Exec=mandarina`) and hicolor icons (32, 128 and 256@2). It **does not install** the Nautilus script or the shortcut: `packaging/install-nautilus.sh` is still manual, and it can be given `/usr/bin/mandarina`. A post-install script could be added, but it would touch the `~/.local` of every user and it is not done.
 
-### Dependencias
+### Dependencies
 
-Configuradas en `tauri.conf.json` (`bundle.linux.deb`):
+Configured in `tauri.conf.json` (`bundle.linux.deb`):
 
-- `Depends: libwebkit2gtk-4.1-0, libgtk-3-0`. Tauri ya las añade solas; si se repiten en `depends` salen duplicadas en el `control`, así que ahí queda la lista vacía.
-- `Recommends: ffmpeg, imagemagick, librsvg2-bin, pandoc, libreoffice, poppler-utils, zip, unzip, p7zip-full`. Son recomendadas y no obligatorias porque cada formato usa su herramienta y la app avisa de la que falta; `libreoffice` es muy pesada. `apt` instala las recomendadas por defecto.
+- `Depends: libwebkit2gtk-4.1-0, libgtk-3-0`. Tauri already adds them by itself; if they are repeated in `depends` they come out duplicated in the `control` file, so the list is left empty there.
+- `Recommends: ffmpeg, imagemagick, librsvg2-bin, pandoc, libreoffice, poppler-utils, ghostscript, zip, unzip, p7zip-full`. They are recommended and not required because each format uses its own tool and the app tells which one is missing; `libreoffice` is very heavy. `apt` installs the recommended ones by default.
 
-`targets` está en `["deb"]` (con `"all"` se intentan también rpm y AppImage, no probados).
+`targets` is `["deb"]` (with `"all"` rpm and AppImage are also attempted, untested).
 
-## Sin probar
+## Untested
 
-- Instalar el `.deb` en un sistema limpio (no se instaló en este equipo) y ejecutar la app desde el menú de aplicaciones.
-- AppImage, rpm, Flatpak y Snap.
-- El `.desktop` lanza la app sin argumentos (modo arrastrar), sin `GDK_BACKEND=x11`; en Wayland puede no colocarse junto al cursor.
-- Hay avisos `dead_code` al compilar, procedentes del código Rust en desarrollo.
+- Installing the `.deb` on a clean system (it was not installed on this machine) and running the app from the applications menu.
+- AppImage, rpm, Flatpak and Snap.
+- The `.desktop` launches the app without arguments (drag mode), without `GDK_BACKEND=x11`; on Wayland it may not be placed next to the cursor.
+- There are `dead_code` warnings when compiling, coming from Rust code under development.
