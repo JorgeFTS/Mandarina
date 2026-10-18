@@ -12,8 +12,8 @@ pub struct FileInfo {
     is_dir: bool,
 }
 
-// Todos los argumentos que no empiecen por "-" (el 0 es el nombre del programa), como rutas
-// absolutas, solo los que existen, sin repetir y en el orden recibido
+// Every argument that does not start with "-" (0 is the program name), as absolute
+// paths, only those that exist, without repeats and in the order received
 fn paths_from_args(args: &[String]) -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
     for arg in args.iter().skip(1).filter(|a| !a.starts_with('-')) {
@@ -27,14 +27,14 @@ fn paths_from_args(args: &[String]) -> Vec<PathBuf> {
     paths
 }
 
-// Suma el tamaño de una carpeta entera sin seguir enlaces simbólicos
+// Adds up the size of a whole folder without following symbolic links
 fn dir_size(dir: &Path) -> u64 {
     let mut total = 0;
     let Ok(entries) = std::fs::read_dir(dir) else {
         return 0;
     };
     for entry in entries.flatten() {
-        // symlink_metadata no sigue el enlace: un symlink cuenta solo como enlace
+        // symlink_metadata does not follow the link: a symlink counts only as a link
         let Ok(meta) = std::fs::symlink_metadata(entry.path()) else {
             continue;
         };
@@ -49,7 +49,7 @@ fn dir_size(dir: &Path) -> u64 {
 
 fn info_of(path: &Path) -> Result<FileInfo, String> {
     let meta = std::fs::symlink_metadata(path).map_err(|_| tr("File does not exist", "El archivo no existe"))?;
-    // Si la ruta misma es un enlace, se mira a qué apunta
+    // If the path itself is a link, look at what it points to
     let meta = if meta.is_symlink() {
         std::fs::metadata(path).unwrap_or(meta)
     } else {
@@ -63,9 +63,9 @@ fn info_of(path: &Path) -> Result<FileInfo, String> {
     })
 }
 
-// Esquina superior izquierda de una ventana w x h con su centro en (cx, cy),
-// sin salirse del monitor (mx, my, mw, mh). Todo en píxeles físicos.
-// Si la ventana es más grande que el monitor, se pega a su esquina superior izquierda.
+// Top-left corner of a w x h window with its center at (cx, cy),
+// without leaving the monitor (mx, my, mw, mh). All in physical pixels.
+// If the window is larger than the monitor, it is stuck to its top-left corner.
 fn clamp_to_monitor(cx: i32, cy: i32, w: i32, h: i32, mx: i32, my: i32, mw: i32, mh: i32) -> (i32, i32) {
     let x = (cx - w / 2).min(mx + mw - w).max(mx);
     let y = (cy - h / 2).min(my + mh - h).max(my);
@@ -93,12 +93,12 @@ pub fn show_wheel(app: AppHandle) {
     };
     let args: Vec<String> = std::env::args().collect();
     if !paths_from_args(&args).is_empty() {
-        // Con archivos la ventana empieza agrandada a mano hasta cubrir el monitor: en Wayland
-        // la app no puede saber dónde está el cursor, pero la página sí lo recibe en cuanto la
-        // ventana aparece debajo de él. Después la interfaz llama a place_wheel para encogerla.
-        // No se usa set_fullscreen: ese modo lo gestiona el compositor (oculta la barra superior,
-        // anima el cambio de espacio de trabajo) y el parpadeo de esa transición se notaría en
-        // cada uso. Al mover y redimensionar la ventana a mano, el compositor no interviene.
+        // With files the window starts enlarged by hand until it covers the monitor: on Wayland
+        // the app cannot know where the cursor is, but the page does receive it as soon as the
+        // window appears under it. Then the interface calls place_wheel to shrink it.
+        // set_fullscreen is not used: that mode is managed by the compositor (it hides the top bar,
+        // animates the workspace change) and the flicker of that transition would be noticeable on
+        // every use. When moving and resizing the window by hand, the compositor does not intervene.
         if let Some(monitor) = window.primary_monitor().ok().flatten() {
             let pos = monitor.position();
             let size = monitor.size();
@@ -112,9 +112,9 @@ pub fn show_wheel(app: AppHandle) {
     let _ = window.set_focus();
 }
 
-// Pone la ventana con el tamaño lógico (width, height) en (x, y). El gestor de ventanas ignora el
-// movimiento si llega pegado al cambio de tamaño, así que se espera un poco y se repite la posición.
-// Es seguro bloquear aquí: los comandos async no corren en el hilo principal.
+// Puts the window at the logical size (width, height) at (x, y). The window manager ignores the
+// move if it arrives right after the resize, so it waits a little and repeats the position.
+// It is safe to block here: async commands do not run on the main thread.
 fn resize_and_move(window: &tauri::WebviewWindow, width: f64, height: f64, x: i32, y: i32) {
     let _ = window.set_size(LogicalSize::new(width, height));
     for _ in 0..3 {
@@ -123,9 +123,9 @@ fn resize_and_move(window: &tauri::WebviewWindow, width: f64, height: f64, x: i3
     }
 }
 
-// Encoge la ventana a 460x460 con su centro en (x, y), el cursor en píxeles de la página
-// (la ventana cubre el monitor con su origen en (0, 0) de la página, así que son también
-// píxeles del monitor). Sigue siendo async porque el frontend la invoca con await.
+// Shrinks the window to 460x460 with its center at (x, y), the cursor in page pixels
+// (the window covers the monitor with its origin at (0, 0) of the page, so they are also
+// monitor pixels). It is still async because the frontend invokes it with await.
 #[tauri::command]
 pub async fn place_wheel(app: AppHandle, x: f64, y: f64) {
     let Some(window) = app.get_webview_window("main") else {
@@ -149,8 +149,8 @@ pub async fn place_wheel(app: AppHandle, x: f64, y: f64) {
     resize_and_move(&window, 460.0, 460.0, wx, wy);
 }
 
-// Pone la ventana (460x460) en el centro del monitor. Se usa para las tarjetas de mensajes
-// (progreso, "Listo", errores), que van en el centro de la pantalla y no junto al cursor.
+// Puts the window (460x460) in the center of the monitor. Used for the message cards
+// (progress, "Done", errors), which go in the center of the screen and not next to the cursor.
 #[tauri::command]
 pub async fn center_wheel(app: AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
@@ -174,16 +174,16 @@ pub async fn center_wheel(app: AppHandle) {
     resize_and_move(&window, 460.0, 460.0, wx, wy);
 }
 
-// Tamaño lógico (ancho, alto) que cabe en un monitor de mon_w x mon_h (también lógicos) dejando
-// `margin` a cada lado. Si ya cabe no cambia; nunca baja de 100 para no dar tamaños absurdos.
+// Logical size (width, height) that fits in a monitor of mon_w x mon_h (also logical) leaving
+// `margin` on each side. If it already fits it does not change; it never goes below 100 so as not to give absurd sizes.
 fn fit_to_monitor(width: f64, height: f64, mon_w: f64, mon_h: f64, margin: f64) -> (f64, f64) {
     let max_w = (mon_w - 2.0 * margin).max(100.0);
     let max_h = (mon_h - 2.0 * margin).max(100.0);
     (width.min(max_w), height.min(max_h))
 }
 
-// Pone la ventana con ese tamaño lógico centrada en el monitor (para el editor de las herramientas).
-// Si el monitor es más pequeño, el tamaño se reduce para que quepa con un margen de 24 px.
+// Puts the window at that logical size, centered on the monitor (for the tools editor).
+// If the monitor is smaller, the size is reduced so that it fits with a 24 px margin.
 #[tauri::command]
 pub async fn resize_center(app: AppHandle, width: u32, height: u32) {
     let Some(window) = app.get_webview_window("main") else {
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn ventana_centrada_en_el_cursor() {
-        // Monitor 1920x1080 en el origen, ventana 460x460
+        // 1920x1080 monitor at the origin, 460x460 window
         assert_eq!(clamp_to_monitor(1000, 500, 460, 460, 0, 0, 1920, 1080), (770, 270));
     }
 
@@ -236,23 +236,23 @@ mod tests {
     fn ventana_limitada_al_monitor() {
         assert_eq!(clamp_to_monitor(0, 0, 460, 460, 0, 0, 1920, 1080), (0, 0));
         assert_eq!(clamp_to_monitor(1920, 1080, 460, 460, 0, 0, 1920, 1080), (1460, 620));
-        // Segundo monitor a la derecha (origen 1920,0)
+        // Second monitor on the right (origin 1920,0)
         assert_eq!(clamp_to_monitor(1930, 10, 460, 460, 1920, 0, 1920, 1080), (1920, 0));
-        // Monitor a la izquierda con origen negativo
+        // Monitor on the left with a negative origin
         assert_eq!(clamp_to_monitor(-5, 500, 460, 460, -1920, 0, 1920, 1080), (-460, 270));
-        // Ventana más grande que el monitor
+        // Window larger than the monitor
         assert_eq!(clamp_to_monitor(100, 100, 500, 500, 0, 0, 300, 300), (0, 0));
     }
 
     #[test]
     fn tamano_ajustado_al_monitor() {
-        // Cabe: no cambia
+        // It fits: no change
         assert_eq!(fit_to_monitor(780.0, 640.0, 1920.0, 1080.0, 24.0), (780.0, 640.0));
-        // Monitor más pequeño: se reduce dejando margen a cada lado
+        // Smaller monitor: it is reduced, leaving a margin on each side
         assert_eq!(fit_to_monitor(780.0, 640.0, 700.0, 600.0, 24.0), (652.0, 552.0));
-        // Solo una dimensión no cabe
+        // Only one dimension does not fit
         assert_eq!(fit_to_monitor(780.0, 640.0, 1920.0, 500.0, 24.0), (780.0, 452.0));
-        // Monitor diminuto: nunca menos de 100
+        // Tiny monitor: never less than 100
         assert_eq!(fit_to_monitor(780.0, 640.0, 50.0, 50.0, 24.0), (100.0, 100.0));
     }
 
@@ -266,32 +266,32 @@ mod tests {
         std::fs::write(&other, b"x").unwrap();
         let file_str = file.to_str().unwrap();
         let other_str = other.to_str().unwrap();
-        // Ignora el nombre del programa y las opciones
+        // Ignores the program name and the options
         assert_eq!(paths_from_args(&args(&["mandarina", "--flag", file_str])), vec![file.clone()]);
-        // Varias rutas, en el orden recibido
+        // Several paths, in the order received
         assert_eq!(
             paths_from_args(&args(&["mandarina", other_str, file_str])),
             vec![other.clone(), file.clone()]
         );
-        // Sin duplicados (también si una viene relativa y otra absoluta)
+        // No duplicates (also if one comes relative and another absolute)
         assert_eq!(
             paths_from_args(&args(&["mandarina", file_str, other_str, file_str])),
             vec![file.clone(), other.clone()]
         );
-        // Una que no existe entre medias se descarta y las demás siguen
+        // One that does not exist in between is discarded and the others go on
         assert_eq!(
             paths_from_args(&args(&["mandarina", file_str, "/no/existe/nada", "-x", other_str])),
             vec![file.clone(), other.clone()]
         );
-        // Una carpeta también vale
+        // A folder is also valid
         assert_eq!(paths_from_args(&args(&["mandarina", dir.to_str().unwrap()])), vec![dir.clone()]);
-        // Ruta relativa: se vuelve absoluta
+        // Relative path: it becomes absolute
         let old_dir = std::env::current_dir().unwrap();
         std::env::set_current_dir(&dir).unwrap();
         let found = paths_from_args(&args(&["mandarina", "a.txt", file_str]));
         std::env::set_current_dir(old_dir).unwrap();
         assert_eq!(found, vec![file.clone()]);
-        // No existe, o no hay argumentos
+        // It does not exist, or there are no arguments
         assert!(paths_from_args(&args(&["mandarina", "/no/existe/nada"])).is_empty());
         assert!(paths_from_args(&args(&["mandarina"])).is_empty());
         assert!(paths_from_args(&args(&["mandarina", "-x"])).is_empty());
@@ -305,7 +305,7 @@ mod tests {
         std::fs::create_dir_all(dir.join("sub")).unwrap();
         std::fs::write(dir.join("a.txt"), b"12345").unwrap();
         std::fs::write(dir.join("sub").join("b.txt"), b"123").unwrap();
-        // El enlace a un archivo grande fuera de la carpeta no debe sumar su contenido
+        // The link to a large file outside the folder must not add up its content
         let big = std::env::temp_dir().join(format!("mandarina_fi_big_{}", std::process::id()));
         std::fs::write(&big, vec![0u8; 100_000]).unwrap();
         std::os::unix::fs::symlink(&big, dir.join("enlace")).unwrap();

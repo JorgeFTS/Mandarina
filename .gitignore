@@ -23,30 +23,31 @@ dist-ssr
 *.sln
 *.sw?
 
-# Rust / Tauri (se regeneran al compilar; Cargo.lock sí se versiona)
+# Rust / Tauri (regenerated when building; Cargo.lock is versioned)
 src-tauri/target/
 src-tauri/gen/
 
-# Claude Code (configuración local)
+# Claude Code (local configuration)
 .claude/
 
-# Sistema y editores
+# System and editors
 .directory
 Thumbs.db
 *~
 .obsidian/workspace*.json
 docs/.obsidian/workspace*.json
+# Personal test files (not published)
 test-files/
 
-# Paquetes que se generan al compilar fuera de src-tauri/target
+# Packages generated when building outside src-tauri/target
 *.deb
 *.rpm
 *.AppImage
 
-# Claves y variables de entorno locales
+# Local keys and environment variables
 .env
 .env.*
 
-# Notas para trabajar con Claude Code (personales, no son parte del programa)
+# Notes for working with Claude Code (personal, not part of the program)
 CLAUDE.md
 SKILLS.md

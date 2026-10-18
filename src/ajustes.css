@@ -1,4 +1,4 @@
-/* Pantalla de ajustes. Usa las variables de .ed-raiz (editor.css), así que sigue el tema claro u oscuro */
+/* Settings screen. It uses the variables of .ed-raiz (editor.css), so it follows the light or dark theme */
 
 .aj-raiz { gap: 10px; }
 
@@ -19,7 +19,7 @@
 .aj-grupo { display: flex; flex-direction: column; gap: 2px; padding-top: 10px; border-top: 1px solid var(--ed-borde); }
 .aj-grupo-titulo { margin: 0; font-size: 15px; font-weight: 800; }
 
-/* Muestras de color: un círculo por acento, el elegido lleva un anillo */
+/* Color swatches: one circle per accent, the chosen one has a ring */
 .aj-color {
   position: relative;
   width: 26px;

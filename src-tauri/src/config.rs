@@ -1,6 +1,6 @@
-// Ajustes del usuario: formatos que muestra la rueda, idioma y color. Ver docs/Configuracion.md.
-// Se guardan en ~/.config/mandarina/config.json; sin archivo, o con datos que no valen, se usan
-// las listas de siempre de converters.rs.
+// User settings: the formats the wheel shows, the language and the color. See docs/Settings.md.
+// They are saved in ~/.config/mandarina/config.json; with no file, or with invalid data, the usual
+// lists from converters.rs are used.
 use crate::converters::{type_targets, Kind};
 use crate::lang::{Lang, LANGUAGES};
 use crate::tr;
@@ -9,16 +9,16 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-// Con menos de 3 formatos, al quitar el del propio archivo casi no quedarían segmentos
+// With fewer than 3 formats, once the file's own format is removed almost no segments would be left
 pub const MIN_FORMATS: usize = 3;
-// La rueda tiene 8 segmentos como máximo. Audio, vídeo y documento traen 8 de serie; como el formato
-// del propio archivo no se muestra, normalmente quedan 7 y cabe HERRAMIENTAS o ZIP.
+// The wheel has 8 segments at most. Audio, video and document have 8 by default; since the format
+// of the file itself is not shown, normally 7 are left and TOOLS or ZIP fits.
 pub const MAX_FORMATS: usize = 8;
 
-// Colores de acento (los tonos están en src/ajustes.js). El primero es el de siempre.
+// Accent colors (the tones are in src/ajustes.js). The first one is the usual one.
 pub const ACCENTS: [&str; 6] = ["orange", "red", "pink", "purple", "blue", "green"];
 
-// Tipos con formatos elegibles (los de solo 3 destinos no dejan nada que elegir)
+// Types with selectable formats (those with only 3 targets leave nothing to choose)
 const KINDS: [(&str, Kind); 6] = [
     ("image", Kind::Image),
     ("audio", Kind::Audio),
@@ -30,13 +30,13 @@ const KINDS: [(&str, Kind); 6] = [
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug, PartialEq)]
 pub struct Config {
-    // clave del tipo ("image", "audio"...) -> formatos visibles, en el orden de la rueda
+    // key of the type ("image", "audio"...) -> visible formats, in the order of the wheel
     #[serde(default)]
     formats: BTreeMap<String, Vec<String>>,
-    // "en" o "es"; sin valor se decide por el idioma del sistema
+    // "en" or "es"; with no value it is decided by the system language
     #[serde(default, skip_serializing_if = "Option::is_none")]
     language: Option<String>,
-    // uno de ACCENTS; sin valor, el naranja
+    // one of ACCENTS; with no value, orange
     #[serde(default, skip_serializing_if = "Option::is_none")]
     accent: Option<String>,
 }
@@ -50,8 +50,8 @@ fn kind_of(key: &str) -> Option<Kind> {
 }
 
 impl Config {
-    // Formatos de destino de un tipo: los elegidos (solo los que existen y sin repetir) o, si no hay
-    // nada elegido o no son suficientes, la lista de siempre
+    // Target formats of a type: the chosen ones (only those that exist and without repeats) or, if
+    // nothing is chosen or there are not enough, the usual list
     pub(crate) fn visible(&self, kind: Kind) -> Vec<&'static str> {
         let all = type_targets(kind);
         let Some(saved) = key_of(kind).and_then(|key| self.formats.get(key)) else {
@@ -69,8 +69,8 @@ impl Config {
     }
 }
 
-// Valida lo que manda la interfaz: tipo conocido, formatos que existen para ese tipo, sin repetir,
-// entre MIN_FORMATS y MAX_FORMATS. Devuelve la lista limpia.
+// Validates what the interface sends: a known type, formats that exist for that type, no repeats,
+// between MIN_FORMATS and MAX_FORMATS. Returns the clean list.
 fn check(key: &str, formats: &[String]) -> Result<Vec<String>, String> {
     let kind = kind_of(key).ok_or_else(|| tr!("Unknown file type: {key}", "Tipo de archivo desconocido: {key}", key = key))?;
     let all = type_targets(kind);
@@ -91,7 +91,7 @@ fn check(key: &str, formats: &[String]) -> Result<Vec<String>, String> {
     Ok(list)
 }
 
-// "auto" (None), "en" o "es"
+// "auto" (None), "en" or "es"
 fn check_language(value: &str) -> Result<Option<String>, String> {
     match value {
         "auto" => Ok(None),
@@ -119,12 +119,12 @@ fn config_path() -> PathBuf {
     base.join("config.json")
 }
 
-// Un archivo que falta o está estropeado no debe impedir abrir la app: se usan los valores por defecto
+// A missing or broken file must not stop the app from opening: the default values are used
 fn load_from(path: &Path) -> Config {
     std::fs::read_to_string(path).ok().and_then(|text| serde_json::from_str(&text).ok()).unwrap_or_default()
 }
 
-// Escribe en un temporal y lo renombra, así nunca queda a medias
+// Writes to a temporary file and renames it, so it is never left half written
 fn save_to(path: &Path, config: &Config) -> Result<(), String> {
     let text = serde_json::to_string_pretty(config).map_err(|e| tr!("Could not save the settings: {e}", "No se pudo guardar la configuración: {e}", e = e))?;
     if let Some(folder) = path.parent() {
@@ -136,15 +136,15 @@ fn save_to(path: &Path, config: &Config) -> Result<(), String> {
         .map_err(|e| tr!("Could not save the settings: {e}", "No se pudo guardar la configuración: {e}", e = e))
 }
 
-// Idioma guardado, para que lang.rs lo use al arrancar. Lee el archivo directamente, sin pasar por
-// CURRENT: lang() puede llamarse mientras CURRENT está bloqueado y no debe esperar a ese bloqueo.
-#[cfg_attr(test, allow(dead_code))] // en las pruebas el idioma no sale del archivo
+// Saved language, so that lang.rs can use it at startup. It reads the file directly, without going through
+// CURRENT: lang() can be called while CURRENT is locked and must not wait for that lock.
+#[cfg_attr(test, allow(dead_code))] // in tests the language does not come from the file
 pub(crate) fn saved_language() -> Option<String> {
     load_from(&config_path()).language.filter(|l| Lang::from_code(l).is_some())
 }
 
-// Configuración en uso: se lee del disco la primera vez y luego se guarda en memoria.
-// En las pruebas siempre son los valores por defecto, para no depender de la máquina.
+// Settings in use: read from disk the first time and then kept in memory.
+// In tests they are always the default values, so they do not depend on the machine.
 static CURRENT: Mutex<Option<Config>> = Mutex::new(None);
 
 pub(crate) fn current() -> Config {
@@ -155,7 +155,7 @@ pub(crate) fn current() -> Config {
     guard.get_or_insert_with(|| load_from(&config_path())).clone()
 }
 
-// Cambia la configuración y la guarda; en memoria solo queda si se pudo guardar
+// Changes the settings and saves them; in memory it only stays if it could be saved
 fn update(change: impl FnOnce(&mut Config)) -> Result<(), String> {
     let mut guard = CURRENT.lock().unwrap_or_else(|e| e.into_inner());
     let path = config_path();
@@ -168,13 +168,13 @@ fn update(change: impl FnOnce(&mut Config)) -> Result<(), String> {
 
 // ---------- Comandos ----------
 
-// Un tipo para la pantalla de configuración
+// A type for the settings screen
 #[derive(Serialize, Debug, PartialEq)]
 pub struct KindFormats {
     key: &'static str,
-    // todos los formatos posibles, en el orden de siempre
+    // all the possible formats, in the usual order
     all: Vec<&'static str>,
-    // los que se muestran ahora, en el orden de la rueda
+    // the ones shown now, in the order of the wheel
     enabled: Vec<&'static str>,
     min: usize,
     max: usize,
@@ -187,12 +187,12 @@ fn describe(config: &Config) -> Vec<KindFormats> {
         .collect()
 }
 
-// Idioma y color para la pantalla de ajustes y para pintar la app al arrancar
+// Language and color for the settings screen and for painting the app at startup
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Prefs {
-    // "auto" o el código de un idioma ("en", "es", "pt", "fr")
+    // "auto" or the code of a language ("en", "es", "pt", "fr")
     language: String,
-    // idiomas disponibles: código y nombre en su propio idioma
+    // available languages: code and name in their own language
     languages: Vec<LanguageInfo>,
     accent: String,
     accents: Vec<&'static str>,
@@ -218,8 +218,8 @@ pub fn get_prefs() -> Prefs {
     prefs_of(&current())
 }
 
-// Guarda el idioma y lo aplica al momento: lang::reload lo vuelve a decidir (los mensajes y los
-// nombres de salida del backend ya salen en el idioma nuevo; la interfaz pide get_language)
+// Saves the language and applies it immediately: lang::reload decides it again (the backend
+// messages and output names already come out in the new language; the interface asks for get_language)
 #[tauri::command]
 pub fn set_language(value: String) -> Result<(), String> {
     let language = check_language(&value)?;
@@ -247,7 +247,7 @@ pub fn set_formats(kind: String, formats: Vec<String>) -> Result<(), String> {
     })
 }
 
-// Vuelve a la lista de siempre de ese tipo
+// Goes back to the usual list of that type
 #[tauri::command]
 pub fn reset_formats(kind: String) -> Result<(), String> {
     kind_of(&kind).ok_or_else(|| tr!("Unknown file type: {kind}", "Tipo de archivo desconocido: {kind}", kind = kind))?;
@@ -275,7 +275,7 @@ mod tests {
         let config = Config::default();
         assert_eq!(config.visible(Kind::Image), type_targets(Kind::Image));
         assert_eq!(config.visible(Kind::Audio), type_targets(Kind::Audio));
-        // Tipos que no se pueden configurar
+        // Types that cannot be configured
         assert_eq!(config.visible(Kind::Slides), type_targets(Kind::Slides));
         assert_eq!(config.visible(Kind::Folder), type_targets(Kind::Folder));
     }
@@ -284,18 +284,18 @@ mod tests {
     fn usa_los_elegidos_en_su_orden() {
         let config = with("image", &["webp", "jpg", "png"]);
         assert_eq!(config.visible(Kind::Image), ["webp", "jpg", "png"]);
-        // Otro tipo no cambia
+        // Another type does not change
         assert_eq!(config.visible(Kind::Audio), type_targets(Kind::Audio));
     }
 
     #[test]
     fn ignora_lo_que_no_vale_en_el_archivo() {
-        // Un formato que no existe y un repetido se quitan; quedan 3 buenos
+        // A format that does not exist and a repeated one are removed; 3 good ones are left
         let config = with("image", &["jpg", "xyz", "jpg", "png", "bmp"]);
         assert_eq!(config.visible(Kind::Image), ["jpg", "png", "bmp"]);
-        // Si quedan menos de 3 se usa la lista de siempre
+        // If fewer than 3 are left, the usual list is used
         assert_eq!(with("image", &["jpg", "xyz", "png"]).visible(Kind::Image), type_targets(Kind::Image));
-        // Los 8 de audio de serie valen
+        // The 8 default audio formats are valid
         let eight = with("audio", &type_targets(Kind::Audio));
         assert_eq!(eight.visible(Kind::Audio), type_targets(Kind::Audio));
     }
@@ -303,10 +303,10 @@ mod tests {
     #[test]
     fn valida_lo_que_manda_la_interfaz() {
         assert_eq!(check("audio", &strings(&["MP3", " wav ", "ogg"])).unwrap(), ["mp3", "wav", "ogg"]);
-        // repetidos: se quitan y cuentan una vez
+        // repeated ones: they are removed and count once
         assert_eq!(check("audio", &strings(&["mp3", "wav", "mp3", "ogg"])).unwrap(), ["mp3", "wav", "ogg"]);
         assert!(check("audio", &strings(&["mp3", "wav"])).is_err(), "pocos");
-        // Los 8 formatos de serie de audio son válidos: así se puede volver a marcar el que se quitó
+        // The 8 default audio formats are valid: that way the one that was removed can be checked again
         assert_eq!(check("audio", &strings(&["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff", "wma"])).unwrap().len(), 8);
         assert!(check("audio", &strings(&["mp3", "wav", "jpg"])).is_err(), "formato de otro tipo");
         assert!(check("audio", &strings(&["mp3", "mp3", "mp3"])).is_err(), "repetidos no suman");
@@ -323,7 +323,7 @@ mod tests {
         assert_eq!(video.enabled, ["mp4", "webm", "gif"]);
         assert_eq!(video.all, type_targets(Kind::Video));
         assert_eq!((video.min, video.max), (3, 8));
-        // Todo lo configurable tiene de verdad más de MIN_FORMATS destinos
+        // Everything configurable really has more than MIN_FORMATS targets
         assert!(list.iter().all(|k| k.all.len() > MIN_FORMATS));
     }
 
@@ -337,7 +337,7 @@ mod tests {
         assert!(check_language("").is_err());
         assert_eq!(check_accent("blue").unwrap(), "blue");
         assert!(check_accent("#ff0000").is_err());
-        // Sin nada guardado: automático y naranja
+        // With nothing saved: automatic and orange
         let prefs = prefs_of(&Config::default());
         assert_eq!((prefs.language.as_str(), prefs.accent.as_str()), ("auto", "orange"));
         assert_eq!(prefs.accents.len(), 6);
@@ -353,7 +353,7 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("mandarina_cfg_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         let path = dir.join("sub").join("config.json");
-        // Sin archivo: valores por defecto
+        // No file: default values
         assert_eq!(load_from(&path), Config::default());
         let mut config = with("pdf", &["docx", "txt", "md"]);
         config.language = Some("es".to_string());
@@ -361,12 +361,12 @@ mod tests {
         save_to(&path, &config).unwrap();
         assert_eq!(load_from(&path), config);
         assert!(!path.with_extension("json.tmp").exists());
-        // Archivo estropeado o con otra forma: valores por defecto, sin error
+        // Broken file or with another shape: default values, no error
         std::fs::write(&path, "{ esto no es json").unwrap();
         assert_eq!(load_from(&path), Config::default());
         std::fs::write(&path, r#"{"formats": 5}"#).unwrap();
         assert_eq!(load_from(&path), Config::default());
-        // Un archivo sin el campo también vale
+        // A file without the field is also valid
         std::fs::write(&path, "{}").unwrap();
         assert_eq!(load_from(&path), Config::default());
         std::fs::remove_dir_all(&dir).unwrap();

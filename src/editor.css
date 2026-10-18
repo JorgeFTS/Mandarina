@@ -1,4 +1,4 @@
-/* Editor visual de recorte. Todo lleva el prefijo .ed- para no chocar con la app */
+/* Visual trim editor. Everything has the .ed- prefix so it does not clash with the app */
 
 .ed-raiz {
   --ed-naranja: var(--naranja, #f26a1b);
@@ -104,7 +104,7 @@
   outline-offset: 2px;
 }
 
-/* ---------- Carga y errores ---------- */
+/* ---------- Loading and errors ---------- */
 
 .ed-centro {
   flex: 1;
@@ -179,7 +179,7 @@
 }
 .ed-campo.ed-tiempo { width: 104px; }
 
-/* Nombre del archivo nuevo: el campo y, a su derecha, la extensión del original en gris */
+/* Name of the new file: the field and, to its right, the extension of the original in gray */
 .ed-nombre { max-width: 460px; gap: 4px; }
 .ed-nombrecaja {
   display: flex;
@@ -269,7 +269,7 @@
 .ed-tirador[data-t="w"] { left: 0; top: 50%; cursor: ew-resize; }
 .ed-tirador:focus-visible, .ed-caja:focus-visible { outline: 3px solid var(--ed-naranja-claro); outline-offset: 2px; }
 
-/* ---------- Audio y vídeo ---------- */
+/* ---------- Audio and video ---------- */
 
 .ed-vista {
   position: relative;

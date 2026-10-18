@@ -48,7 +48,7 @@ html, body {
   user-select: none;
 }
 
-/* El escenario (460x460) se centra en --x/--y: por defecto el centro de la ventana */
+/* The stage (460x460) is centered on --x/--y: by default the center of the window */
 #escenario {
   position: fixed;
   left: var(--x, 50%);
@@ -167,7 +167,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding-bottom: 18px; /* deja sitio al engranaje de ajustes bajo la píldora */
+  padding-bottom: 18px; /* leaves room for the settings gear under the pill */
   pointer-events: none;
 }
 
@@ -338,7 +338,7 @@ html, body {
   .segmento > path, .segmento text, .segmento .ico, .pildora { transition: none; }
 }
 
-/* ---------- Marca de "Listo" ---------- */
+/* ---------- "Done" mark ---------- */
 
 .check {
   width: 40px;
@@ -353,7 +353,7 @@ html, body {
   text-align: center;
 }
 
-/* ---------- Editor visual (ocupa toda la ventana, fuera del escenario de 460x460) ---------- */
+/* ---------- Visual editor (it takes the whole window, outside the 460x460 stage) ---------- */
 
 #vista-editor,
 #vista-ajustes {
@@ -387,7 +387,7 @@ html, body {
 
 .editor-falta h2 { margin: 0; font-size: 17px; font-weight: 800; }
 
-/* ---------- Ajustes (ocupa toda la ventana, como el editor) ---------- */
+/* ---------- Settings (it takes the whole window, like the editor) ---------- */
 
 #ajustes-contenedor {
   width: 560px;
@@ -397,7 +397,7 @@ html, body {
   position: relative;
 }
 
-/* Engranaje pequeño en la parte baja del círculo central */
+/* Small gear at the bottom of the center circle */
 .ajustes {
   position: absolute;
   left: 50%;

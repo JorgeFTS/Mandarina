@@ -14,12 +14,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 
-// Tiempo máximo de espera de media_info, preview_image y video_frame, y de waveform
+// Maximum wait time of media_info, preview_image and video_frame, and of waveform
 const QUICK_WAIT: Duration = Duration::from_secs(5);
 const WAVE_WAIT: Duration = Duration::from_secs(20);
-// La forma de onda se calcula con audio mono de 8 kHz y 16 bits
+// The waveform is computed with mono 8 kHz, 16-bit audio
 const WAVE_RATE: f64 = 8000.0;
-// Un resultado de "comprimir" solo se conserva si pesa menos del 98 % del original
+// The result of "compress" is only kept if it weighs less than 98% of the original
 const MIN_SAVING_PERCENT: u64 = 98;
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -33,20 +33,20 @@ pub struct ToolInfo {
     id: String,
     label: String,
     options: Vec<ToolOption>,
-    // "crop" (recuadro sobre una imagen), "trim" (inicio y fin en tiempo) o None
+    // "crop" (a box over an image), "trim" (start and end in time) or None
     editor: Option<String>,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct MediaInfo {
-    // "imagen", "audio" o "video"
+    // "imagen", "audio" or "video"
     kind: String,
     width: Option<u32>,
     height: Option<u32>,
     duration: Option<f64>,
 }
 
-// ---------- Tabla de herramientas ----------
+// ---------- Table of tools ----------
 
 fn tool(id: &str, label: &str, options: Vec<ToolOption>, editor: Option<&str>) -> ToolInfo {
     ToolInfo { id: id.into(), label: label.into(), options, editor: editor.map(String::from) }
@@ -64,7 +64,7 @@ fn flip_tool() -> ToolInfo {
     tool("flip", &tr("FLIP", "VOLTEAR"), options(&[("horizontal", "Horizontal"), ("vertical", "Vertical")]), None)
 }
 
-// Las imágenes se redimensionan por ancho y los vídeos por alto
+// Images are resized by width and videos by height
 fn resize_tool(video: bool) -> ToolInfo {
     let mut list = vec![("pct:75", "75 %"), ("pct:50", "50 %"), ("pct:25", "25 %")];
     if video {
@@ -75,12 +75,12 @@ fn resize_tool(video: bool) -> ToolInfo {
     tool("resize", &tr("RESIZE", "REDIMENSIONAR"), options(&list), None)
 }
 
-// Herramientas de un archivo según su tipo. Carpetas y tipos sin herramientas: lista vacía.
-// SVG (vectorial) y HEIC/HEIF (ImageMagick los lee pero no los escribe) tampoco tienen.
+// Tools of a file according to its type. Folders and types with no tools: empty list.
+// SVG (vector) and HEIC/HEIF (ImageMagick reads them but does not write them) have none either.
 fn tools_of(path: &Path) -> Vec<ToolInfo> {
     let compress = || tool("compress", &tr("REDUCE SIZE", "REDUCIR TAMAÑO"), vec![], None);
     let strip = || tool("strip_metadata", &tr("METADATA", "METADATOS"), vec![], None);
-    // Formatos que no se pueden comprimir sin perder calidad: la herramienta no se ofrece
+    // Formats that cannot be compressed without losing quality: the tool is not offered
     let sin_compresion = ["bmp", "wav", "flac", "aiff", "aif"].contains(&get_ext(path).as_str());
     let mut list = match category(path) {
         Some(Kind::Image) if !["svg", "heic", "heif"].contains(&get_ext(path).as_str()) => vec![
@@ -107,14 +107,14 @@ fn tools_of(path: &Path) -> Vec<ToolInfo> {
     if sin_compresion {
         list.retain(|t| t.id != "compress");
     }
-    // Cualquier archivo se puede empaquetar en un zip (los comprimidos y las carpetas ya tienen sus conversiones)
+    // Any file can be packed into a zip (archives and folders already have their own conversions)
     if !matches!(category(path), None | Some(Kind::Archive) | Some(Kind::Folder)) {
         list.push(tool("zip", "ZIP", vec![], None));
     }
     list
 }
 
-// Sufijo del nombre de salida según el idioma: "photo (compressed).jpg" / "foto (compressed).jpg"
+// Suffix of the output name according to the language: "photo (compressed).jpg" / "foto (comprimido).jpg"
 fn suffix_of(tool: &str) -> String {
     match tool {
         "compress" => tr("compressed", "comprimido"),
@@ -127,18 +127,18 @@ fn suffix_of(tool: &str) -> String {
     }
 }
 
-// Ruta de salida junto al original, con su misma extensión (tal cual, con sus mayúsculas):
-// "photo (compressed).jpg", y si existe "photo (compressed) 2.jpg", "photo (compressed) 3.jpg"...
+// Output path next to the original, with its same extension (as is, with its capitals):
+// "photo (compressed).jpg", and if it exists "photo (compressed) 2.jpg", "photo (compressed) 3.jpg"...
 fn output_path(src: &Path, tool: &str) -> std::path::PathBuf {
     let folder = src.parent().unwrap_or(Path::new("."));
     let ext = src.extension().unwrap_or_default().to_string_lossy().to_string();
     unique_path(folder, &format!("{} ({})", get_stem(src), suffix_of(tool)), &ext)
 }
 
-// Nombre que el usuario escribió en el editor (campo opcional `nombre` de `params`), sin extensión.
-// Devuelve Ok(None) si no hay nombre; si lo hay, se limpia: sin espacios en los extremos y sin la
-// extensión del original si la escribió (la salida siempre lleva la del original). Se rechazan los
-// nombres vacíos, con "/" o caracteres de control, "." y "..", y los demasiado largos.
+// Name the user typed in the editor (optional `nombre` field of `params`), without extension.
+// Returns Ok(None) if there is no name; if there is one, it is cleaned: no spaces at the ends and without the
+// extension of the original if they typed it (the output always carries that of the original). Empty
+// names, names with "/" or control characters, "." and "..", and names that are too long are rejected.
 fn custom_name(params: Option<&Value>, ext: &str) -> Result<Option<String>, String> {
     let Some(raw) = params.and_then(|p| p.get("nombre")).and_then(Value::as_str) else {
         return Ok(None);
@@ -154,14 +154,14 @@ fn custom_name(params: Option<&Value>, ext: &str) -> Result<Option<String>, Stri
     if name == "." || name == ".." || name.contains('/') || name.chars().any(char::is_control) {
         return Err(tr("The name is not valid: it cannot contain \"/\" or be \".\" or \"..\"", "El nombre no es válido: no puede llevar «/» ni ser «.» o «..»"));
     }
-    // Los sistemas de archivos limitan el nombre a 255 bytes: se deja margen para " 2" y la extensión
+    // File systems limit the name to 255 bytes: room is left for " 2" and the extension
     if name.len() + ext.len() > 230 {
         return Err(tr("The name is too long", "El nombre es demasiado largo"));
     }
     Ok(Some(name.to_string()))
 }
 
-// Igual que output_path, pero con el nombre elegido por el usuario si lo hay
+// Same as output_path, but with the name chosen by the user if there is one
 fn output_path_named(src: &Path, tool: &str, name: Option<&str>) -> std::path::PathBuf {
     match name {
         None => output_path(src, tool),
@@ -173,9 +173,9 @@ fn output_path_named(src: &Path, tool: &str, name: Option<&str>) -> std::path::P
     }
 }
 
-// ---------- Validación ----------
+// ---------- Validation ----------
 
-// Mensajes que se repiten
+// Messages that repeat
 fn invalid_option() -> String {
     tr("Invalid option", "Opción no válida")
 }
@@ -208,7 +208,7 @@ fn took_too_long() -> String {
     tr("Took too long", "Tardó demasiado")
 }
 
-// Número de un campo de `params` (finito)
+// Number from a field of `params` (finite)
 fn number(params: &Value, key: &str) -> Result<f64, String> {
     params
         .get(key)
@@ -217,7 +217,7 @@ fn number(params: &Value, key: &str) -> Result<f64, String> {
         .ok_or_else(|| tr!("\"{key}\" is missing or is not a number", "Falta «{key}» o no es un número", key = key))
 }
 
-// Inicio y fin en segundos: 0 <= inicio < fin <= duración (con 0,05 s de margen por redondeos)
+// Start and end in seconds: 0 <= start < end <= duration (with 0.05 s of margin for rounding)
 fn parse_trim(params: Option<&Value>, duration: f64) -> Result<(f64, f64), String> {
     let params = params.ok_or_else(|| tr("The start and end are missing", "Faltan el inicio y el fin"))?;
     let start = number(params, "start")?;
@@ -238,8 +238,8 @@ fn parse_trim(params: Option<&Value>, duration: f64) -> Result<(f64, f64), Strin
     Ok((start, end))
 }
 
-// Recuadro (x, y, ancho, alto) en píxeles de la imagen ya orientada; dentro de sus límites.
-// Los decimales se redondean al píxel más cercano.
+// Box (x, y, width, height) in pixels of the already oriented image; inside its limits.
+// Decimals are rounded to the nearest pixel.
 fn parse_crop(params: Option<&Value>, img_w: u32, img_h: u32) -> Result<(u32, u32, u32, u32), String> {
     let params = params.ok_or_else(|| tr("The crop box is missing", "Falta el recuadro"))?;
     let mut values = [0u64; 4];
@@ -260,7 +260,7 @@ fn parse_crop(params: Option<&Value>, img_w: u32, img_h: u32) -> Result<(u32, u3
     Ok((x as u32, y as u32, w as u32, h as u32))
 }
 
-// Valida la opción elegida contra las de la herramienta (las que no tienen opciones la ignoran)
+// Validates the chosen option against those of the tool (those with no options ignore it)
 fn check_option(info: &ToolInfo, option: Option<&str>) -> Result<Option<String>, String> {
     if info.options.is_empty() {
         return Ok(None);
@@ -279,16 +279,16 @@ fn parse_resize(option: &str) -> Result<(&str, u32), String> {
     Ok((kind, n))
 }
 
-// El resultado de comprimir solo vale si ahorra algo claro; si no, el original ya estaba optimizado
+// The result of compressing is only valid if it saves something clear; otherwise the original was already optimized
 fn worth_keeping(original: u64, compressed: u64) -> bool {
     compressed * 100 < original * MIN_SAVING_PERCENT
 }
 
-// ---------- Comandos de ImageMagick ----------
+// ---------- ImageMagick commands ----------
 
-// Argumentos de magick (sin el programa) para una herramienta de imagen. `crop` ya viene validado.
-// Todas aplican antes -auto-orient: así se conserva la orientación aunque -strip borre el EXIF.
-// En un GIF animado se juntan los fotogramas (-coalesce) antes y se optimizan (-layers Optimize) después.
+// magick arguments (without the program) for an image tool. `crop` is already validated.
+// All of them apply -auto-orient first: that way the orientation is kept even though -strip erases the EXIF.
+// In an animated GIF the frames are joined (-coalesce) before and optimized (-layers Optimize) after.
 fn image_args(ext: &str, tool: &str, option: Option<&str>, crop: Option<(u32, u32, u32, u32)>, src: &str, out: &str) -> Result<Vec<String>, String> {
     let mut args: Vec<String> = vec![src.into(), "-auto-orient".into()];
     let gif = ext == "gif";
@@ -298,11 +298,11 @@ fn image_args(ext: &str, tool: &str, option: Option<&str>, crop: Option<(u32, u3
     let mut extra: Vec<String> = Vec::new();
     match tool {
         "compress" => match ext {
-            // 4:2:0 y progresivo ahorran bastante más que bajar la calidad
+            // 4:2:0 and progressive save quite a bit more than lowering the quality
             "jpg" | "jpeg" => extra.extend(["-strip", "-quality", "75", "-sampling-factor", "4:2:0", "-interlace", "Plane"].map(String::from)),
             "webp" => extra.extend(["-strip", "-quality", "75"].map(String::from)),
             "avif" => extra.extend(["-strip", "-quality", "60"].map(String::from)),
-            // Sin pérdida: compresión máxima y filtro adaptativo. En fotos ahorra casi nada.
+            // Lossless: maximum compression and adaptive filter. On photos it saves almost nothing.
             "png" => extra.extend(
                 ["-strip", "-define", "png:compression-level=9", "-define", "png:compression-filter=5", "-define", "png:compression-strategy=1"]
                     .map(String::from),
@@ -326,11 +326,11 @@ fn image_args(ext: &str, tool: &str, option: Option<&str>, crop: Option<(u32, u3
             };
             extra.extend(["-rotate".to_string(), degrees.into()]);
         }
-        // flop es el espejo izquierda-derecha y flip el de arriba-abajo
+        // flop is the left-right mirror and flip the top-bottom one
         "flip" => extra.push(if option == Some("horizontal") { "-flop" } else { "-flip" }.into()),
         "resize" => {
             let (kind, n) = parse_resize(option.ok_or_else(missing_option)?)?;
-            // "800x>" fija el ancho en 800 solo si la imagen es más ancha: nunca se amplía
+            // "800x>" sets the width to 800 only if the image is wider: it is never enlarged
             let size = if kind == "pct" { format!("{n}%") } else { format!("{n}x>") };
             extra.extend(["-resize".to_string(), size]);
         }
@@ -344,9 +344,9 @@ fn image_args(ext: &str, tool: &str, option: Option<&str>, crop: Option<(u32, u3
     Ok(args)
 }
 
-// ---------- Comandos de ffmpeg ----------
+// ---------- ffmpeg commands ----------
 
-// Códec de audio del contenedor al recodificar (los pares estándar de cada formato)
+// Audio codec of the container when re-encoding (the standard pairs of each format)
 fn audio_codec(ext: &str) -> Vec<&'static str> {
     match ext {
         "mp3" | "avi" => vec!["-c:a", "libmp3lame", "-b:a", "128k"],
@@ -357,8 +357,8 @@ fn audio_codec(ext: &str) -> Vec<&'static str> {
     }
 }
 
-// Códec de vídeo del contenedor. `compress` busca ahorrar espacio; si no (recortar, girar...)
-// se recodifica con calidad alta para que se note poco.
+// Video codec of the container. `compress` looks to save space; otherwise (trim, rotate...)
+// it is re-encoded with high quality so that it is hardly noticeable.
 fn video_codec(ext: &str, compress: bool) -> Vec<&'static str> {
     match ext {
         "webm" => vec!["-c:v", "libvpx-vp9", "-crf", if compress { "33" } else { "28" }, "-b:v", "0", "-deadline", "good", "-cpu-used", "4", "-row-mt", "1"],
@@ -373,8 +373,8 @@ fn video_codec(ext: &str, compress: bool) -> Vec<&'static str> {
     }
 }
 
-// Filtro de vídeo de girar, voltear y redimensionar. Las dimensiones salen siempre pares
-// (los códecs lo exigen); la coma dentro del filtro va escapada.
+// Video filter for rotate, flip and resize. The dimensions always come out even
+// (codecs require it); the comma inside the filter is escaped.
 fn video_filter(tool: &str, option: Option<&str>) -> Result<String, String> {
     let filter = match (tool, option) {
         ("rotate", Some("left")) => "transpose=2".to_string(),
@@ -385,10 +385,10 @@ fn video_filter(tool: &str, option: Option<&str>) -> Result<String, String> {
         ("resize", Some(option)) => {
             let (kind, n) = parse_resize(option)?;
             if kind == "pct" {
-                // ancho = N % del original redondeado a par; el alto se calcula solo (-2 = par)
+                // width = N % of the original rounded to even; the height is computed by itself (-2 = even)
                 format!("scale=trunc(iw*{n}/200)*2:-2")
             } else {
-                // alto N, o el del original si es menor (no se amplía)
+                // height N, or that of the original if it is smaller (it is not enlarged)
                 format!("scale=-2:min({n}\\,ih)")
             }
         }
@@ -397,18 +397,18 @@ fn video_filter(tool: &str, option: Option<&str>) -> Result<String, String> {
     Ok(filter)
 }
 
-// Argumentos de ffmpeg (sin el programa) para una herramienta de audio o vídeo.
-// `trim` ya viene validado. Con `progress` pide a ffmpeg el avance por stdout.
-// Decisión de recortar: el audio se corta copiando (sin pérdida; precisión de un paquete, unos 25 ms
-// en mp3/aac; flac se recodifica sin pérdida) y el vídeo se recodifica (corte exacto al fotograma; con copia solo cortaría en
-// fotogramas clave y el inicio saldría roto).
+// ffmpeg arguments (without the program) for an audio or video tool.
+// `trim` is already validated. With `progress` it asks ffmpeg for progress on stdout.
+// Trim decision: audio is cut by copying (lossless; accurate to one packet, about 25 ms
+// in mp3/aac; flac is re-encoded losslessly) and video is re-encoded (frame-exact cut; with copy it would only cut at
+// keyframes and the start would come out broken).
 fn ffmpeg_args(kind: Kind, ext: &str, tool: &str, option: Option<&str>, trim: Option<(f64, f64)>, src: &str, out: &str, progress: bool) -> Result<Vec<String>, String> {
     let video = kind == Kind::Video;
     let mut args: Vec<String> = ["-nostdin", "-hide_banner", "-v", "error", "-n"].map(String::from).to_vec();
     if progress {
         args.extend(["-progress", "pipe:1", "-nostats"].map(String::from));
     }
-    // Recortar: se salta al inicio antes de abrir (rápido) y se limita la duración de la salida
+    // Trim: it seeks to the start before opening (fast) and the duration of the output is limited
     let mut duration_args: Vec<String> = Vec::new();
     if let Some((start, end)) = trim {
         args.extend(["-ss".to_string(), format!("{start:.3}")]);
@@ -419,11 +419,11 @@ fn ffmpeg_args(kind: Kind, ext: &str, tool: &str, option: Option<&str>, trim: Op
     let mut rest: Vec<String> = Vec::new();
     match (tool, video) {
         ("compress", false) => {
-            // wav, flac y aiff no pierden calidad: bajar el bitrate no es posible (flac ahorra ~0,01 %)
+            // wav, flac and aiff do not lose quality: lowering the bitrate is not possible (flac saves ~0.01%)
             if ["wav", "flac", "aiff"].contains(&ext) {
                 return Err(tr("This format cannot be compressed without losing quality", "Este formato no se puede comprimir sin perder calidad"));
             }
-            // Se descarta la carátula incrustada (-map 0:a)
+            // The embedded cover art is discarded (-map 0:a)
             rest.extend(["-map", "0:a"].map(String::from));
             rest.extend(audio_codec(ext).into_iter().map(String::from));
         }
@@ -432,14 +432,14 @@ fn ffmpeg_args(kind: Kind, ext: &str, tool: &str, option: Option<&str>, trim: Op
             rest.extend(video_codec(ext, true).into_iter().map(String::from));
             rest.extend(audio_codec(ext).into_iter().map(String::from));
         }
-        // Copia sin recodificar; -map_metadata -1 borra etiquetas globales y de pistas, y quita capítulos.
-        // bitexact evita que ffmpeg escriba su propia etiqueta "encoder".
+        // Copy without re-encoding; -map_metadata -1 erases global and track tags, and removes chapters.
+        // bitexact keeps ffmpeg from writing its own "encoder" tag.
         ("strip_metadata", _) => {
             let maps: &[&str] = if video { &["-map", "0:v", "-map", "0:a?", "-map", "0:s?"] } else { &["-map", "0:a"] };
             rest.extend(maps.iter().map(|s| s.to_string()));
             rest.extend(["-map_metadata", "-1", "-map_chapters", "-1", "-c", "copy", "-fflags", "+bitexact"].map(String::from));
         }
-        // flac se recodifica (sin pérdida): al copiar conservaría en la cabecera la duración original
+        // flac is re-encoded (lossless): copying would keep the original duration in the header
         ("trim", false) => rest.extend(["-map", "0:a", "-c", if ext == "flac" { "flac" } else { "copy" }].map(String::from)),
         ("trim", true) => {
             rest.extend(["-map", "0:v:0", "-map", "0:a?"].map(String::from));
@@ -450,7 +450,7 @@ fn ffmpeg_args(kind: Kind, ext: &str, tool: &str, option: Option<&str>, trim: Op
             rest.extend(["-map", "0:v:0", "-map", "0:a?", "-vf"].map(String::from));
             rest.push(video_filter(tool, option)?);
             rest.extend(video_codec(ext, false).into_iter().map(String::from));
-            // El audio no cambia: se copia
+            // The audio does not change: it is copied
             rest.extend(["-c:a", "copy"].map(String::from));
         }
         ("mute", true) => rest.extend(["-map", "0:v", "-map", "0:s?", "-c", "copy"].map(String::from)),
@@ -465,9 +465,9 @@ fn as_refs(args: &[String]) -> Vec<&str> {
     args.iter().map(|s| s.as_str()).collect()
 }
 
-// ---------- Ejecutar una herramienta ----------
+// ---------- Running a tool ----------
 
-// Medidas de la imagen después de la orientación EXIF (solo el primer fotograma)
+// Measurements of the image after the EXIF orientation (first frame only)
 fn image_size(src: &str) -> Result<(u32, u32), String> {
     let first_frame = format!("{src}[0]");
     let args = ["identify", "-auto-orient", "-format", "%w %h\n", first_frame.as_str()];
@@ -483,8 +483,8 @@ fn parse_size(text: &str) -> Option<(u32, u32)> {
     Some((w, h))
 }
 
-// Comprime un PDF con ghostscript a una carpeta temporal y lo mueve a `out` (ghostscript interpreta
-// el "%" de un nombre de salida, así que no se le da la ruta final)
+// Compresses a PDF with ghostscript into a temporary folder and moves it to `out` (ghostscript interprets
+// the "%" of an output name, so it is not given the final path)
 fn compress_pdf(src: &str, out: &Path) -> Result<(), String> {
     let gs = need(&["gs"], "sudo apt install ghostscript")?;
     let tmp = TempDir::new()?;
@@ -498,10 +498,10 @@ fn compress_pdf(src: &str, out: &Path) -> Result<(), String> {
     move_file(&tmp_out, out)
 }
 
-// Ejecuta la herramienta y devuelve la ruta de salida. Núcleo de run_tool: en la app `progress` emite
-// el evento convert-progress y en las pruebas guarda los valores.
+// Runs the tool and returns the output path. Core of run_tool: in the app `progress` emits
+// the convert-progress event and in tests it stores the values.
 fn run_tool_with(path: &str, tool: &str, option: Option<&str>, params: Option<&Value>, progress: Option<Progress>) -> Result<String, String> {
-    // Cada herramienta nueva empieza sin cancelación pendiente
+    // Every new tool starts with no pending cancellation
     CANCEL.store(false, Ordering::SeqCst);
     let src = std::path::absolute(path).map_err(|e| tr!("Invalid path: {e}", "Ruta no válida: {e}", e = e))?;
     if !src.is_file() {
@@ -525,7 +525,7 @@ fn run_tool_with(path: &str, tool: &str, option: Option<&str>, params: Option<&V
     let result = match kind {
         Kind::Image => {
             let magick = need(&["magick"], "sudo apt install imagemagick")?;
-            // El recorte se valida contra la imagen orientada
+            // The crop is validated against the oriented image
             let crop = if tool == "trim" {
                 let (w, h) = image_size(&src_text)?;
                 Some(parse_crop(params, w, h)?)
@@ -543,7 +543,7 @@ fn run_tool_with(path: &str, tool: &str, option: Option<&str>, params: Option<&V
             } else {
                 None
             };
-            // Para el progreso cuenta la duración de lo que se escribe (el tramo, si se recorta)
+            // For the progress, the duration of what is written counts (the section, if it is trimmed)
             let total = match trim {
                 Some((start, end)) => Some(end - start),
                 None => duration,
@@ -555,20 +555,20 @@ fn run_tool_with(path: &str, tool: &str, option: Option<&str>, params: Option<&V
             let args = ffmpeg_args(kind, &ext, tool, option, trim, &src_text, &out_text, progress.is_some())?;
             run_progress("ffmpeg", &as_refs(&args), None, progress)
         }
-        // Kind::Pdf: tools_of solo deja pasar "compress"
+        // Kind::Pdf: tools_of only lets "compress" through
         _ => compress_pdf(&src_text, &out),
     };
     let result = result.and_then(|_| check_saving(tool, &src, &out));
     if let Err(e) = result {
-        // No dejar salidas a medias, tampoco si se canceló (la ruta era nueva, así que es nuestra)
+        // Do not leave half-written outputs, not even if it was cancelled (the path was new, so it is ours)
         let _ = std::fs::remove_file(&out);
         return Err(if has_code(&e, CANCELLED) || has_code(&e, OPTIMIZED) { e } else { tr!("Could not apply the tool: {e}", "No se pudo aplicar la herramienta: {e}", e = e) });
     }
     Ok(out_text)
 }
 
-// Comprimir solo deja el resultado si ahorra algo claro; si no, error con código [optimized]
-// y la salida se borra (así el original sigue siendo la mejor versión)
+// Compressing only keeps the result if it saves something clear; otherwise, an error with code [optimized]
+// and the output is deleted (so the original stays the best version)
 fn check_saving(tool: &str, src: &Path, out: &Path) -> Result<(), String> {
     if tool != "compress" {
         return Ok(());
@@ -581,11 +581,11 @@ fn check_saving(tool: &str, src: &Path, out: &Path) -> Result<(), String> {
     }
 }
 
-// ---------- Información, vista previa y forma de onda ----------
+// ---------- Information, preview and waveform ----------
 
-// Interpreta la salida JSON de ffprobe. En vídeo, las medidas son las de la imagen que se ve: si el
-// vídeo trae una rotación de 90 o 270 grados (metadato rotate o matriz de rotación), ancho y alto se
-// intercambian, igual que al recodificar con ffmpeg (que aplica la rotación y la quita del metadato).
+// Interprets the JSON output of ffprobe. In video, the measurements are those of the image that is seen: if the
+// video carries a rotation of 90 or 270 degrees (rotate tag or rotation matrix), width and height are
+// swapped, the same as when re-encoding with ffmpeg (which applies the rotation and removes it from the metadata).
 fn parse_probe(json: &str, kind: Kind) -> Result<MediaInfo, String> {
     let root: Value = serde_json::from_str(json).map_err(|_| cannot_read_file())?;
     let duration = root["format"]["duration"].as_str().and_then(|d| d.parse::<f64>().ok()).filter(|d| d.is_finite() && *d >= 0.0);
@@ -630,7 +630,7 @@ fn media_info_blocking(path: &str) -> Result<MediaInfo, String> {
     }
 }
 
-// Lado máximo razonable para una vista previa
+// Reasonable maximum side for a preview
 fn clamp_side(max_side: u32) -> u32 {
     max_side.clamp(16, 4096)
 }
@@ -642,7 +642,7 @@ fn jpeg_data_url(bytes: &[u8]) -> Result<String, String> {
     Ok(format!("data:image/jpeg;base64,{}", base64(bytes)))
 }
 
-// Traduce el error de capture: el mensaje de miniatura no sirve aquí
+// Translates the capture error: the thumbnail message is no use here
 fn capture_error(e: String) -> String {
     if e == timeout_message() { took_too_long() } else { cannot_make_image() }
 }
@@ -655,7 +655,7 @@ fn preview_image_blocking(path: &str, max_side: u32) -> Result<String, String> {
     need(&["magick"], "sudo apt install imagemagick")?;
     let first_frame = format!("{}[0]", st(&src));
     let size = format!("{0}x{0}>", clamp_side(max_side));
-    // Sobre fondo blanco: JPEG no tiene transparencia
+    // On a white background: JPEG has no transparency
     let args = [first_frame.as_str(), "-auto-orient", "-background", "white", "-alpha", "remove", "-alpha", "off", "-thumbnail", size.as_str(), "jpg:-"];
     let bytes = capture("magick", &args, Instant::now() + QUICK_WAIT).map_err(capture_error)?;
     jpeg_data_url(&bytes)
@@ -672,7 +672,7 @@ fn video_frame_blocking(path: &str, seconds: f64, max_side: u32) -> Result<Strin
     }
     let src = st(&src);
     let start = format!("{:.3}", seconds.max(0.0));
-    // Cabe en un cuadrado de max_side sin ampliar (ffmpeg aplica la rotación del vídeo solo)
+    // Fits in a square of max_side without enlarging (ffmpeg applies the video's rotation by itself)
     let side = clamp_side(max_side);
     let scale = format!("scale=w=min(iw\\,{side}):h=min(ih\\,{side}):force_original_aspect_ratio=decrease");
     let deadline = Instant::now() + QUICK_WAIT;
@@ -681,7 +681,7 @@ fn video_frame_blocking(path: &str, seconds: f64, max_side: u32) -> Result<Strin
     let mut with_seek: Vec<&str> = base.to_vec();
     with_seek.extend(["-ss", start.as_str(), "-i", src.as_str()]);
     with_seek.extend(rest);
-    // Si el tiempo pasa del final no sale ningún fotograma: se prueba con el primero
+    // If the time is past the end no frame comes out: the first one is tried
     if let Ok(bytes) = capture("ffmpeg", &with_seek, deadline) {
         if !bytes.is_empty() {
             return jpeg_data_url(&bytes);
@@ -694,8 +694,8 @@ fn video_frame_blocking(path: &str, seconds: f64, max_side: u32) -> Result<Strin
     jpeg_data_url(&bytes)
 }
 
-// Suma muestras (16 bits con signo) a los picos. `first` es el número de la primera muestra del
-// trozo y `per_bucket` cuántas muestras caben en cada cubo; lo que sobra por redondeo va al último.
+// Adds samples (16-bit signed) to the peaks. `first` is the number of the first sample of the
+// chunk and `per_bucket` how many samples fit in each bucket; what is left over from rounding goes to the last one.
 fn add_samples(peaks: &mut [f32], first: usize, per_bucket: usize, samples: &[i16]) {
     let last = peaks.len() - 1;
     for (i, sample) in samples.iter().enumerate() {
@@ -707,7 +707,7 @@ fn add_samples(peaks: &mut [f32], first: usize, per_bucket: usize, samples: &[i1
     }
 }
 
-// Escala los picos para que el mayor sea 1.0 (un audio todo en silencio queda en ceros)
+// Scales the peaks so that the largest is 1.0 (an all-silent audio stays at zeros)
 fn normalize(peaks: &mut [f32]) {
     let max = peaks.iter().cloned().fold(0.0, f32::max);
     if max > 0.0 {
@@ -717,13 +717,13 @@ fn normalize(peaks: &mut [f32]) {
     }
 }
 
-// Lee PCM s16le por trozos y calcula el pico de cada cubo. Con `per_bucket` (se conoce la duración)
-// no guarda las muestras: solo los picos. Sin él las guarda todas (8 kHz, unos 56 MB por hora).
+// Reads PCM s16le in chunks and computes the peak of each bucket. With `per_bucket` (the duration is known)
+// it does not keep the samples: only the peaks. Without it, it keeps them all (8 kHz, about 56 MB per hour).
 fn read_peaks<R: Read>(mut stream: R, buckets: usize, per_bucket: Option<usize>) -> Vec<f32> {
     let mut peaks = vec![0.0f32; buckets];
     let mut all: Vec<i16> = Vec::new();
     let mut done = 0;
-    // Un trozo puede acabar a mitad de una muestra: el byte suelto espera al siguiente
+    // A chunk may end in the middle of a sample: the loose byte waits for the next one
     let mut pending: Vec<u8> = Vec::new();
     let mut buf = [0u8; 16384];
     loop {
@@ -759,7 +759,7 @@ fn waveform_blocking(path: &str, buckets: u32) -> Result<Vec<f32>, String> {
     need(&["ffmpeg"], "sudo apt install ffmpeg")?;
     let src = st(&src);
     let buckets = buckets as usize;
-    // Con la duración se sabe cuántas muestras tiene cada cubo y se procesa sin guardar el audio
+    // With the duration, it is known how many samples each bucket has and the audio is processed without storing it
     let per_bucket = probe_duration(&src).map(|d| ((d * WAVE_RATE) as usize / buckets).max(1));
     let args = ["-nostdin", "-v", "error", "-i", src.as_str(), "-vn", "-ac", "1", "-ar", "8000", "-f", "s16le", "-"];
     let peaks = capture_with("ffmpeg", &args, Instant::now() + WAVE_WAIT, move |stream| read_peaks(stream, buckets, per_bucket))
@@ -767,14 +767,14 @@ fn waveform_blocking(path: &str, buckets: u32) -> Result<Vec<f32>, String> {
     Ok(peaks)
 }
 
-// ---------- Comandos de Tauri ----------
+// ---------- Tauri commands ----------
 
 #[tauri::command]
 pub fn get_tools(path: String) -> Vec<ToolInfo> {
     tools_of(Path::new(&path))
 }
 
-// Evento convert-progress { percent } como en convert (el 100 lo marca la interfaz al terminar)
+// convert-progress event { percent } as in convert (the interface marks 100 when it ends)
 #[tauri::command]
 pub async fn run_tool(app: AppHandle, path: String, tool: String, option: Option<String>, params: Option<Value>) -> Result<String, String> {
     let progress: Progress = Arc::new(move |percent| {
@@ -822,7 +822,7 @@ mod tests {
     use std::process::{Command, Stdio};
     use std::sync::Mutex;
 
-    // Carpeta temporal propia de cada prueba
+    // Temporary folder of each test
     fn test_dir(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("mandarina_tools_{}_{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -835,7 +835,7 @@ mod tests {
         assert!(status.success(), "{program} falló");
     }
 
-    // Salida de un programa como texto (sin espacios sobrantes)
+    // Output of a program as text (without extra whitespace)
     fn output(program: &str, args: &[&str]) -> String {
         let out = Command::new(program).args(args).stdin(Stdio::null()).stderr(Stdio::null()).output().unwrap();
         String::from_utf8_lossy(&out.stdout).trim().to_string()
@@ -849,7 +849,7 @@ mod tests {
         std::fs::metadata(path).unwrap().len()
     }
 
-    // Medidas de una imagen tal como se ven (con la orientación aplicada)
+    // Measurements of an image as they are seen (with the orientation applied)
     fn dims(path: &str) -> (u32, u32) {
         let text = output("magick", &["identify", "-auto-orient", "-format", "%w %h", &format!("{path}[0]")]);
         parse_size(&text).unwrap()
@@ -863,7 +863,7 @@ mod tests {
         info.options.iter().map(|o| o.id.as_str()).collect()
     }
 
-    // JPEG de w x h con el EXIF de orientación 6 (se ve girado 90°) y un comentario "secreto"
+    // JPEG of w x h with EXIF orientation 6 (it looks rotated 90°) and a "secreto" comment
     fn jpeg_with_exif(path: &Path, w: u32, h: u32) {
         run("magick", &["-size", &format!("{w}x{h}"), "plasma:fractal", "-quality", "90", &st(path)]);
         let bytes = std::fs::read(path).unwrap();
@@ -882,7 +882,7 @@ mod tests {
         std::fs::write(path, data).unwrap();
     }
 
-    // Vídeo de prueba con audio y el título "Secreto"
+    // Test video with audio and the title "Secreto"
     fn make_video(path: &Path, secs: &str) {
         let args = [
             "-nostdin", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=25", "-f", "lavfi", "-i", "sine=frequency=440",
@@ -894,7 +894,7 @@ mod tests {
         run("ffmpeg", &all);
     }
 
-    // Duración en segundos según ffprobe
+    // Duration in seconds according to ffprobe
     fn duration_of(path: &str) -> f64 {
         output("ffprobe", &["-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", path]).parse().unwrap()
     }
@@ -903,15 +903,15 @@ mod tests {
         run_tool_with(&st(path), tool, option, params.as_ref(), None)
     }
 
-    // ----- Lógica pura -----
+    // ----- Pure logic -----
 
     #[test]
     fn nombre_elegido_por_el_usuario() {
         let n = |v: Value, ext: &str| custom_name(Some(&v), ext);
-        // Sin campo o sin params: no hay nombre
+        // No field or no params: there is no name
         assert_eq!(custom_name(None, "jpg"), Ok(None));
         assert_eq!(n(json!({ "x": 1 }), "jpg"), Ok(None));
-        // Se limpian espacios y la extensión del original (sin importar mayúsculas)
+        // Spaces and the extension of the original are cleaned (regardless of case)
         assert_eq!(n(json!({ "nombre": "  mi recorte  " }), "jpg"), Ok(Some("mi recorte".into())));
         assert_eq!(n(json!({ "nombre": "mi recorte.JPG" }), "jpg"), Ok(Some("mi recorte".into())));
         assert_eq!(n(json!({ "nombre": "foto.v2" }), "jpg"), Ok(Some("foto.v2".into())));
@@ -921,7 +921,7 @@ mod tests {
             assert!(n(json!({ "nombre": malo }), "jpg").is_err(), "{malo:?}");
         }
         assert!(n(json!({ "nombre": "x".repeat(300) }), "jpg").is_err());
-        // Un valor que no es texto se ignora
+        // A value that is not text is ignored
         assert_eq!(n(json!({ "nombre": 5 }), "jpg"), Ok(None));
     }
 
@@ -932,14 +932,14 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let src = dir.join("foto.JPG");
         std::fs::write(&src, b"x").unwrap();
-        // Con nombre: misma carpeta y extensión del original
+        // With a name: same folder and extension of the original
         assert_eq!(output_path_named(&src, "trim", Some("mi recorte")), dir.join("mi recorte.JPG"));
-        // Sin nombre: el de siempre
+        // Without a name: the usual one
         assert_eq!(output_path_named(&src, "trim", None), dir.join("foto (trimmed).JPG"));
-        // Si existe, nunca se sobrescribe
+        // If it exists, it is never overwritten
         std::fs::write(dir.join("mi recorte.JPG"), b"x").unwrap();
         assert_eq!(output_path_named(&src, "trim", Some("mi recorte")), dir.join("mi recorte 2.JPG"));
-        // Aunque se llame como el original
+        // Even if it is named like the original
         assert_eq!(output_path_named(&src, "trim", Some("foto")), dir.join("foto 2.JPG"));
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -959,10 +959,10 @@ mod tests {
         let out = tool_run(&src, "trim", None, Some(crop("-mi recorte"))).unwrap();
         assert_eq!(out, st(&dir.join("-mi recorte.png")));
         assert_eq!(image_size(&out).unwrap(), (50, 40));
-        // El mismo nombre otra vez: no se pisa
+        // The same name again: it is not overwritten
         let otra = tool_run(&src, "trim", None, Some(crop("-mi recorte.png"))).unwrap();
         assert_eq!(otra, st(&dir.join("-mi recorte 2.png")));
-        // Nombre no válido: error claro y no se crea nada
+        // Invalid name: a clear error and nothing is created
         let antes = std::fs::read_dir(&dir).unwrap().count();
         assert!(tool_run(&src, "trim", None, Some(crop("a/b"))).is_err());
         assert!(tool_run(&src, "trim", None, Some(crop("  "))).is_err());
@@ -1002,19 +1002,19 @@ mod tests {
         let audio = tools_of(Path::new("a.mp3"));
         assert_eq!(ids(&audio), ["compress", "strip_metadata", "trim", "zip"]);
         assert_eq!(audio[2].editor.as_deref(), Some("trim"));
-        // Sin pérdida (wav, flac, aiff) y bmp: no se ofrece COMPRIMIR
+        // Lossless (wav, flac, aiff) and bmp: REDUCE SIZE is not offered
         assert_eq!(ids(&tools_of(Path::new("a.flac"))), ["strip_metadata", "trim", "zip"]);
         assert_eq!(ids(&tools_of(Path::new("a.wav"))), ["strip_metadata", "trim", "zip"]);
         assert!(!ids(&tools_of(Path::new("a.bmp"))).contains(&"compress"));
         assert_eq!(ids(&tools_of(Path::new("a.pdf"))), ["compress", "zip"]);
-        // Comprimidos y tipos desconocidos: ninguna. Documentos, SVG y HEIC: solo ZIP
+        // Archives and unknown types: none. Documents, SVG and HEIC: only ZIP
         for name in ["a.zip", "a.xyz", "sinextension"] {
             assert!(tools_of(Path::new(name)).is_empty(), "{name}");
         }
         for name in ["a.docx", "a.srt", "a.svg", "a.heic", "a.heif"] {
             assert_eq!(ids(&tools_of(Path::new(name))), ["zip"], "{name}");
         }
-        // Carpetas, aunque se llamen como un archivo con herramientas
+        // Folders, even if they are named like a file with tools
         let dir = test_dir("carpeta").join("fotos.jpg");
         std::fs::create_dir_all(&dir).unwrap();
         assert!(tools_of(&dir).is_empty());
@@ -1036,7 +1036,7 @@ mod tests {
         let src = dir.join("foto.JPG");
         std::fs::write(&src, b"x").unwrap();
         assert_eq!(output_path(&src, "compress"), dir.join("foto (compressed).JPG"));
-        // La regla de " 2" va al final del nombre completo
+        // The " 2" rule goes at the end of the full name
         std::fs::write(dir.join("foto (compressed).JPG"), b"x").unwrap();
         assert_eq!(output_path(&src, "compress"), dir.join("foto (compressed) 2.JPG"));
         std::fs::write(dir.join("foto (compressed) 2.JPG"), b"x").unwrap();
@@ -1045,7 +1045,7 @@ mod tests {
         for (tool, suffix) in names {
             assert_eq!(output_path(&src, tool), dir.join(format!("foto ({suffix}).JPG")));
         }
-        // Nombre con puntos y con "-" delante
+        // Name with dots and with a "-" in front
         let odd = dir.join("-mi.foto.v2.png");
         assert_eq!(output_path(&odd, "rotate"), dir.join("-mi.foto.v2 (rotated).png"));
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1055,7 +1055,7 @@ mod tests {
     fn valida_el_recorte_de_tiempo() {
         let ok = json!({ "start": 1.0, "end": 3.5 });
         assert_eq!(parse_trim(Some(&ok), 10.0), Ok((1.0, 3.5)));
-        // Hasta el final exacto, y un pequeño exceso por redondeo se ajusta
+        // Up to the exact end, and a small excess from rounding is adjusted
         assert_eq!(parse_trim(Some(&json!({ "start": 0, "end": 10 })), 10.0), Ok((0.0, 10.0)));
         assert_eq!(parse_trim(Some(&json!({ "start": 0, "end": 10.03 })), 10.0), Ok((0.0, 10.0)));
         let err = |v: Value| parse_trim(Some(&v), 10.0).unwrap_err();
@@ -1074,9 +1074,9 @@ mod tests {
     fn valida_el_recuadro() {
         let ok = json!({ "x": 10, "y": 20, "w": 50, "h": 100 });
         assert_eq!(parse_crop(Some(&ok), 200, 400), Ok((10, 20, 50, 100)));
-        // Justo hasta el borde
+        // Right up to the edge
         assert_eq!(parse_crop(Some(&json!({ "x": 150, "y": 300, "w": 50, "h": 100 })), 200, 400), Ok((150, 300, 50, 100)));
-        // Decimales: se redondean
+        // Decimals: they are rounded
         assert_eq!(parse_crop(Some(&json!({ "x": 9.6, "y": 0.2, "w": 49.7, "h": 10 })), 200, 400), Ok((10, 0, 50, 10)));
         let err = |v: Value| parse_crop(Some(&v), 200, 400).unwrap_err();
         assert_eq!(err(json!({ "x": 151, "y": 0, "w": 50, "h": 10 })), "The crop box goes outside the image");
@@ -1086,7 +1086,7 @@ mod tests {
         assert!(err(json!({ "x": 0, "y": 0, "w": 10 })).contains("h"));
         assert!(err(json!({ "x": "0", "y": 0, "w": 10, "h": 10 })).contains("x"));
         assert!(parse_crop(None, 200, 400).is_err());
-        // Un número enorme no desborda
+        // A huge number does not overflow
         assert!(parse_crop(Some(&json!({ "x": 4294967295u64, "y": 0, "w": 4294967295u64, "h": 1 })), 200, 400).is_err());
     }
 
@@ -1097,7 +1097,7 @@ mod tests {
         assert_eq!(check_option(rotate, Some("left")), Ok(Some("left".to_string())));
         assert!(check_option(rotate, Some("up")).is_err());
         assert!(check_option(rotate, None).is_err());
-        // Las que no tienen opciones la ignoran
+        // Those with no options ignore it
         let compress = list.iter().find(|t| t.id == "compress").unwrap();
         assert_eq!(check_option(compress, Some("loquesea")), Ok(None));
         assert_eq!(parse_resize("pct:50"), Ok(("pct", 50)));
@@ -1131,11 +1131,11 @@ mod tests {
         assert!(args("jpg", "compress", None, None).contains(&"75".to_string()));
         assert!(args("jpeg", "compress", None, None).contains(&"Plane".to_string()));
         assert!(args("png", "compress", None, None).contains(&"png:compression-level=9".to_string()));
-        // GIF: fotogramas juntos antes y optimizados después
+        // GIF: frames joined before and optimized after
         let gif = args("gif", "flip", Some("vertical"), None);
         assert_eq!(gif[2], "-coalesce");
         assert_eq!(gif[gif.len() - 3..], ["-layers", "Optimize", "/a/y.png"]);
-        // Formatos que no se pueden comprimir y casos que faltan datos
+        // Formats that cannot be compressed and cases where data is missing
         assert_eq!(image_args("bmp", "compress", None, None, "a", "b").unwrap_err(), "The BMP format does not support compression");
         assert!(image_args("png", "trim", None, None, "a", "b").is_err());
         assert!(image_args("png", "rotate", None, None, "a", "b").is_err());
@@ -1163,27 +1163,27 @@ mod tests {
         assert!(mute.contains("-c copy") && !mute.contains("-c:a"));
         let strip = text(build(Kind::Video, "mp4", "strip_metadata", None, None).unwrap());
         assert!(strip.contains("-map_metadata -1 -map_chapters -1 -c copy"));
-        // Recortar: audio copiando, vídeo recodificando; -ss antes de -i y -t después
+        // Trim: audio by copying, video by re-encoding; -ss before -i and -t after
         let audio = text(build(Kind::Audio, "mp3", "trim", None, Some((1.5, 4.0))).unwrap());
         assert!(audio.contains("-ss 1.500 -i /a/-v.mp4 -t 2.500") && audio.contains("-c copy"));
         let video = text(build(Kind::Video, "mp4", "trim", None, Some((1.0, 2.0))).unwrap());
         assert!(video.contains("-ss 1.000 -i") && video.contains("libx264 -crf 20"));
-        // Audio: comprimir según el formato; wav, flac y aiff no se pueden
+        // Audio: compress according to the format; wav, flac and aiff cannot be
         assert!(text(build(Kind::Audio, "ogg", "compress", None, None).unwrap()).contains("libvorbis -q:a 4"));
         assert!(text(build(Kind::Audio, "opus", "compress", None, None).unwrap()).contains("libopus -b:a 96k"));
         for ext in ["wav", "flac", "aiff"] {
             assert!(build(Kind::Audio, ext, "compress", None, None).is_err());
         }
-        // Una herramienta de vídeo no vale para audio
+        // A video tool is no use for audio
         assert!(build(Kind::Audio, "mp3", "rotate", Some("left"), None).is_err());
-        // Con progreso se pide a ffmpeg el avance por stdout
+        // With progress, ffmpeg is asked for progress on stdout
         let with = ffmpeg_args(Kind::Video, "mp4", "mute", None, None, "a", "b", true).unwrap();
         assert!(with.contains(&"pipe:1".to_string()));
     }
 
     #[test]
     fn calcula_los_picos() {
-        // 4 muestras por cubo: picos 8192, 16384, 32767 (con signo) y 0
+        // 4 samples per bucket: peaks 8192, 16384, 32767 (signed) and 0
         let mut peaks = vec![0.0f32; 4];
         let samples: Vec<i16> = vec![0, 100, -8192, 5, 16384, 0, 0, -3, -32767, 0, 0, 0, 0, 0, 0, 0];
         add_samples(&mut peaks, 0, 4, &samples);
@@ -1191,18 +1191,18 @@ mod tests {
         assert_eq!(peaks[1], 16384.0 / 32768.0);
         assert_eq!(peaks[2], 32767.0 / 32768.0);
         assert_eq!(peaks[3], 0.0);
-        // Lo que sobra por redondeo va al último cubo
+        // What is left over from rounding goes to the last bucket
         let mut peaks = vec![0.0f32; 2];
         add_samples(&mut peaks, 0, 2, &[0, 0, 0, 0, 0, 0, 1000]);
         assert_eq!(peaks[1], 1000.0 / 32768.0);
-        // En trozos da lo mismo que de golpe
+        // In chunks it gives the same as all at once
         let mut a = vec![0.0f32; 4];
         add_samples(&mut a, 0, 4, &samples[..5]);
         add_samples(&mut a, 5, 4, &samples[5..]);
         let mut b = vec![0.0f32; 4];
         add_samples(&mut b, 0, 4, &samples);
         assert_eq!(a, b);
-        // -32768 no desborda
+        // -32768 does not overflow
         let mut c = vec![0.0f32; 1];
         add_samples(&mut c, 0, 1, &[i16::MIN]);
         assert_eq!(c[0], 1.0);
@@ -1218,12 +1218,12 @@ mod tests {
         assert_eq!(silence, [0.0, 0.0, 0.0]);
     }
 
-    // Convierte muestras a los bytes s16le que saca ffmpeg
+    // Converts samples to the s16le bytes that ffmpeg outputs
     fn to_bytes(samples: &[i16]) -> Vec<u8> {
         samples.iter().flat_map(|s| s.to_le_bytes()).collect()
     }
 
-    // Lector que entrega pocos bytes cada vez (y casi siempre parte alguna muestra por la mitad)
+    // Reader that hands over few bytes at a time (and almost always splits some sample in the middle)
     struct Trickle(Vec<u8>, usize);
 
     impl Read for Trickle {
@@ -1239,7 +1239,7 @@ mod tests {
     fn lee_picos_de_un_flujo() {
         let samples: Vec<i16> = (0..40).map(|i| if i % 10 == 3 { (i as i16 + 1) * 100 } else { 10 }).collect();
         let bytes = to_bytes(&samples);
-        // Con la duración conocida (10 muestras por cubo) y sin ella (40 muestras / 4 cubos) sale igual
+        // With the duration known (10 samples per bucket) and without it (40 samples / 4 buckets) it comes out the same
         let known = read_peaks(Trickle(bytes.clone(), 0), 4, Some(10));
         let unknown = read_peaks(Trickle(bytes.clone(), 0), 4, None);
         let whole = read_peaks(&bytes[..], 4, Some(10));
@@ -1249,7 +1249,7 @@ mod tests {
         assert_eq!(known.len(), 4);
         assert_eq!(known[3], 1.0);
         assert!((known[0] - 400.0 / 3400.0).abs() < 1e-6);
-        // Más cubos que muestras y flujo vacío: no falla
+        // More buckets than samples and an empty stream: it does not fail
         assert_eq!(read_peaks(&bytes[..4], 8, None).len(), 8);
         assert_eq!(read_peaks(&[][..], 3, Some(5)), [0.0, 0.0, 0.0]);
     }
@@ -1262,7 +1262,7 @@ mod tests {
         let video = r#"{"streams":[{"codec_type":"audio"},{"codec_type":"video","width":1280,"height":720}],"format":{"duration":"3.0"}}"#;
         let info = parse_probe(video, Kind::Video).unwrap();
         assert_eq!(info, MediaInfo { kind: "video".into(), width: Some(1280), height: Some(720), duration: Some(3.0) });
-        // Rotación por matriz (también negativa) o por etiqueta: se intercambian; 180 no
+        // Rotation by matrix (also negative) or by tag: they are swapped; 180 is not
         for rotation in ["90", "-90", "270"] {
             let json = format!(r#"{{"streams":[{{"codec_type":"video","width":1280,"height":720,"side_data_list":[{{"rotation":{rotation}}}]}}],"format":{{}}}}"#);
             let info = parse_probe(&json, Kind::Video).unwrap();
@@ -1272,7 +1272,7 @@ mod tests {
         assert_eq!(parse_probe(tagged, Kind::Video).unwrap().width, Some(720));
         let upside = r#"{"streams":[{"codec_type":"video","width":1280,"height":720,"side_data_list":[{"rotation":180}]}],"format":{}}"#;
         assert_eq!(parse_probe(upside, Kind::Video).unwrap().width, Some(1280));
-        // Sin pista de vídeo o JSON roto
+        // No video track or broken JSON
         assert!(parse_probe(audio, Kind::Video).is_err());
         assert!(parse_probe("no es json", Kind::Audio).is_err());
     }
@@ -1286,17 +1286,17 @@ mod tests {
         assert_eq!(tool_run(&txt, "compress", None, None), Err("Tool not available for this file".to_string()));
         assert_eq!(tool_run(&dir.join("no_existe.png"), "compress", None, None), Err("File does not exist".to_string()));
         assert_eq!(tool_run(&dir, "compress", None, None), Err("File does not exist".to_string()));
-        // Herramienta que ese tipo no tiene
+        // Tool that this type does not have
         let png = dir.join("a.png");
         std::fs::write(&png, b"x").unwrap();
         assert!(tool_run(&png, "mute", None, None).is_err());
         let pdf = dir.join("a.pdf");
         std::fs::write(&pdf, b"x").unwrap();
         assert!(tool_run(&pdf, "rotate", Some("left"), None).is_err());
-        // Sin opción o con una inventada
+        // With no option or with an invented one
         assert_eq!(tool_run(&png, "rotate", None, None), Err("Choose an option".to_string()));
         assert_eq!(tool_run(&png, "rotate", Some("arriba"), None), Err("Invalid option".to_string()));
-        // No se creó nada
+        // Nothing was created
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 3);
         assert!(media_info_blocking(&st(&txt)).is_err());
         assert!(preview_image_blocking(&st(&txt), 100).is_err());
@@ -1305,7 +1305,7 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // ----- Imágenes -----
+    // ----- Images -----
 
     #[test]
     fn comprime_jpg_y_png() {
@@ -1320,25 +1320,25 @@ mod tests {
         assert_eq!(out, st(&dir.join("-foto [1] (compressed).jpg")));
         assert!(size_of(&out) < size_of(&st(&jpg)) * 98 / 100);
         assert_eq!(dims(&out), (800, 600));
-        // Otra vez: no se pisa el anterior
+        // Again: the previous one is not overwritten
         let again = tool_run(&jpg, "compress", None, None).unwrap();
         assert_eq!(again, st(&dir.join("-foto [1] (compressed) 2.jpg")));
 
-        // PNG guardado con poca compresión (captura de pantalla): se ahorra mucho sin perder nada
+        // PNG saved with little compression (screenshot): a lot is saved without losing anything
         let png = dir.join("-captura.png");
         run("magick", &["-size", "800x600", "gradient:white-blue", "-fill", "red", "-draw", "rectangle 50,50 300,300", "-define", "png:compression-level=1", &st(&png)]);
         let out = tool_run(&png, "compress", None, None).unwrap();
         assert!(size_of(&out) < size_of(&st(&png)) * 98 / 100);
         assert_eq!(dims(&out), (800, 600));
 
-        // Ruido puro: no hay nada que ahorrar, se avisa y no queda salida
+        // Pure noise: there is nothing to save, a notice is given and no output is left
         let noise = dir.join("ruido.png");
         run("magick", &["-size", "300x300", "xc:gray50", "+noise", "Random", &st(&noise)]);
         let before = std::fs::read_dir(&dir).unwrap().count();
         assert_eq!(tool_run(&noise, "compress", None, None), Err("[optimized] Already optimized".to_string()));
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), before);
 
-        // BMP no admite compresión: la herramienta ni siquiera se ofrece
+        // BMP does not support compression: the tool is not even offered
         let bmp = dir.join("a.bmp");
         run("magick", &["-size", "50x50", "xc:red", &st(&bmp)]);
         assert_eq!(tool_run(&bmp, "compress", None, None), Err("Tool not available for this file".to_string()));
@@ -1355,12 +1355,12 @@ mod tests {
         run("magick", &["-size", "800x600", "plasma:fractal", &st(&dir.join("base.png"))]);
         for ext in ["webp", "tiff"] {
             let src = dir.join(format!("f.{ext}"));
-            // Sin comprimir (tiff) o con calidad máxima (webp)
+            // Uncompressed (tiff) or with maximum quality (webp)
             run("magick", &[&st(&dir.join("base.png")), "-quality", "100", "-compress", "none", &st(&src)]);
             let out = tool_run(&src, "compress", None, None).unwrap_or_else(|e| panic!("{ext}: {e}"));
             assert!(size_of(&out) < size_of(&st(&src)), "{ext}");
         }
-        // GIF animado: sigue teniendo los mismos fotogramas
+        // Animated GIF: it still has the same frames
         let gif = dir.join("a.gif");
         run("magick", &["-size", "200x100", "xc:red", "-size", "200x100", "xc:blue", "-size", "200x100", "xc:green", "-delay", "10", &st(&gif)]);
         let out = tool_run(&gif, "strip_metadata", None, None).unwrap();
@@ -1376,14 +1376,14 @@ mod tests {
         }
         let dir = test_dir("strip_img");
         let src = dir.join("-girada.jpg");
-        // 400x200 con orientación 6: se ve de 200x400
+        // 400x200 with orientation 6: it looks 200x400
         jpeg_with_exif(&src, 400, 200);
         assert_eq!(dims(&st(&src)), (200, 400));
         assert!(std::fs::read(&src).unwrap().windows(7).any(|w| w == b"secreto"));
         let out = tool_run(&src, "strip_metadata", None, None).unwrap();
         assert_eq!(out, st(&dir.join("-girada (no metadata).jpg")));
         assert!(!std::fs::read(&out).unwrap().windows(7).any(|w| w == b"secreto"));
-        // Sin etiqueta de orientación y con la imagen ya girada
+        // With no orientation tag and with the image already rotated
         assert_eq!(output("magick", &["identify", "-format", "%[orientation]", &format!("{out}[0]")]), "Undefined");
         assert_eq!(dims(&out), (200, 400));
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1398,12 +1398,12 @@ mod tests {
         let dir = test_dir("recorta_img");
         let src = dir.join("-r.jpg");
         jpeg_with_exif(&src, 400, 200);
-        // Los límites son los de la imagen orientada (200 x 400)
+        // The limits are those of the oriented image (200 x 400)
         let crop = json!({ "x": 10, "y": 20, "w": 50, "h": 300 });
         let out = tool_run(&src, "trim", None, Some(crop)).unwrap();
         assert_eq!(out, st(&dir.join("-r (trimmed).jpg")));
         assert_eq!(dims(&out), (50, 300));
-        // Un recuadro válido en la imagen sin orientar pero fuera de la orientada
+        // A box that is valid in the unoriented image but outside the oriented one
         let too_wide = json!({ "x": 0, "y": 0, "w": 300, "h": 100 });
         assert_eq!(tool_run(&src, "trim", None, Some(too_wide)), Err("The crop box goes outside the image".to_string()));
         assert!(tool_run(&src, "trim", None, None).is_err());
@@ -1419,25 +1419,25 @@ mod tests {
         }
         let dir = test_dir("gira_img");
         let src = dir.join("-g.png");
-        // 400x200: mitad izquierda roja y mitad derecha azul
+        // 400x200: left half red and right half blue
         run("magick", &["-size", "200x200", "xc:red", "-size", "200x200", "xc:blue", "+append", &st(&src)]);
         assert_eq!(dims(&st(&src)), (400, 200));
         let left = tool_run(&src, "rotate", Some("left"), None).unwrap();
         assert_eq!(left, st(&dir.join("-g (rotated).png")));
         assert_eq!(dims(&left), (200, 400));
-        // Girar a la izquierda lleva el lado derecho (azul) arriba
+        // Rotating left takes the right side (blue) to the top
         assert_eq!(output("magick", &[&left, "-format", "%[fx:p{0,0}.b]", "info:"]), "1");
         assert_eq!(dims(&tool_run(&src, "rotate", Some("right"), None).unwrap()), (200, 400));
         assert_eq!(dims(&tool_run(&src, "rotate", Some("180"), None).unwrap()), (400, 200));
         let flop = tool_run(&src, "flip", Some("horizontal"), None).unwrap();
         assert_eq!(output("magick", &[&flop, "-format", "%[fx:p{0,0}.b]", "info:"]), "1");
-        // Voltear en vertical no cambia el lado rojo de arriba a la izquierda
+        // Flipping vertically does not change the red side from the top left
         let flip = tool_run(&src, "flip", Some("vertical"), None).unwrap();
         assert_eq!(output("magick", &[&flip, "-format", "%[fx:p{0,0}.r]", "info:"]), "1");
         run("magick", &["-size", "100x100", "xc:red", "-size", "100x100", "xc:blue", "-append", &st(&dir.join("v.png"))]);
         let flip = tool_run(&dir.join("v.png"), "flip", Some("vertical"), None).unwrap();
         assert_eq!(output("magick", &[&flip, "-format", "%[fx:p{0,0}.b]", "info:"]), "1");
-        // Redimensionar: porcentaje, ancho y sin ampliar
+        // Resize: percentage, width and without enlarging
         assert_eq!(dims(&tool_run(&src, "resize", Some("pct:50"), None).unwrap()), (200, 100));
         assert_eq!(dims(&tool_run(&src, "resize", Some("pct:25"), None).unwrap()), (100, 50));
         assert_eq!(dims(&tool_run(&src, "resize", Some("w:800"), None).unwrap()), (400, 200));
@@ -1455,23 +1455,23 @@ mod tests {
         jpeg_with_exif(&src, 400, 200);
         let info = media_info_blocking(&st(&src)).unwrap();
         assert_eq!(info, MediaInfo { kind: "imagen".into(), width: Some(200), height: Some(400), duration: None });
-        // GIF animado: el primer fotograma
+        // Animated GIF: the first frame
         let gif = dir.join("a.gif");
         run("magick", &["-size", "30x20", "xc:red", "-size", "30x20", "xc:blue", "-delay", "5", &st(&gif)]);
         let info = media_info_blocking(&st(&gif)).unwrap();
         assert_eq!((info.width, info.height), (Some(30), Some(20)));
-        // Vista previa: JPEG que cabe en 100 px, ya orientado (50 x 100)
+        // Preview: JPEG that fits in 100 px, already oriented (50 x 100)
         let url = preview_image_blocking(&st(&src), 100).unwrap();
         let data = url.strip_prefix("data:image/jpeg;base64,").expect("no es un data URL");
         assert!(data.starts_with("/9j/"));
-        // PNG con transparencia
+        // PNG with transparency
         let png = dir.join("t.png");
         run("magick", &["-size", "40x40", "xc:none", &st(&png)]);
         assert!(preview_image_blocking(&st(&png), 100).is_ok());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // ----- Vídeo y audio -----
+    // ----- Video and audio -----
 
     #[test]
     fn herramientas_de_video_con_ffmpeg() {
@@ -1487,59 +1487,59 @@ mod tests {
         let title = |p: &str| output("ffprobe", &["-v", "error", "-show_entries", "format_tags=title", "-of", "csv=p=0", p]);
         assert_eq!(title(&st(&src)), "Secreto");
 
-        // Quitar metadatos: sin título y el vídeo y el audio siguen ahí
+        // Remove metadata: no title and the video and the audio are still there
         let out = tool_run(&src, "strip_metadata", None, None).unwrap();
         assert_eq!(out, st(&dir.join("-v [1] (no metadata).mp4")));
         assert_eq!(title(&out), "");
         assert_eq!(video_dims(&out), "320,240");
         assert_eq!(audio_streams(&out), "audio");
 
-        // Sin audio: ya no hay pista de audio y la imagen sigue igual
+        // No audio: there is no audio track anymore and the picture is the same
         let out = tool_run(&src, "mute", None, None).unwrap();
         assert_eq!(out, st(&dir.join("-v [1] (no audio).mp4")));
         assert_eq!(audio_streams(&out), "");
         assert_eq!(video_dims(&out), "320,240");
 
-        // Girar: ancho y alto se intercambian (90°) o no (180°)
+        // Rotate: width and height are swapped (90°) or not (180°)
         assert_eq!(video_dims(&tool_run(&src, "rotate", Some("right"), None).unwrap()), "240,320");
         assert_eq!(video_dims(&tool_run(&src, "rotate", Some("left"), None).unwrap()), "240,320");
         assert_eq!(video_dims(&tool_run(&src, "rotate", Some("180"), None).unwrap()), "320,240");
         assert_eq!(video_dims(&tool_run(&src, "flip", Some("horizontal"), None).unwrap()), "320,240");
         assert_eq!(video_dims(&tool_run(&src, "flip", Some("vertical"), None).unwrap()), "320,240");
-        // Redimensionar: porcentaje y alto, siempre pares, sin ampliar
+        // Resize: percentage and height, always even, without enlarging
         assert_eq!(video_dims(&tool_run(&src, "resize", Some("pct:50"), None).unwrap()), "160,120");
         assert_eq!(video_dims(&tool_run(&src, "resize", Some("pct:75"), None).unwrap()), "240,180");
-        // h:480 es más que el original (240): no se amplía
+        // h:480 is more than the original (240): it is not enlarged
         assert_eq!(video_dims(&tool_run(&src, "resize", Some("h:480"), None).unwrap()), "320,240");
-        // Y uno más grande sí se reduce a 480 de alto (ancho par: 960x720 -> 640x480)
+        // And a larger one is reduced to 480 high (even width: 960x720 -> 640x480)
         let big = dir.join("grande.mp4");
         let args = ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=960x720:rate=10", "-t", "1", "-pix_fmt", "yuv420p", &st(&big)];
         run("ffmpeg", &args);
         assert_eq!(video_dims(&tool_run(&big, "resize", Some("h:480"), None).unwrap()), "640,480");
 
-        // Comprimir: sale más pequeño (el original está a calidad alta) o avisa de que ya está optimizado
+        // Compress: it comes out smaller (the original is high quality) or it warns that it is already optimized
         let out = tool_run(&src, "compress", None, None).unwrap();
         assert!(size_of(&out) < size_of(&st(&src)) * 98 / 100);
         assert_eq!(video_dims(&out), "320,240");
         assert_eq!(audio_streams(&out), "audio");
 
-        // Recortar: el vídeo dura lo que el tramo y no se pasa del original
+        // Trim: the video lasts as long as the section and does not go past the original
         let params = json!({ "start": 0.5, "end": 1.5 });
         let out = tool_run(&src, "trim", None, Some(params)).unwrap();
         assert_eq!(out, st(&dir.join("-v [1] (trimmed).mp4")));
         assert!((duration_of(&out) - 1.0).abs() < 0.15, "dura {}", duration_of(&out));
-        // Parámetros inválidos: error y nada creado
+        // Invalid parameters: an error and nothing created
         let before = std::fs::read_dir(&dir).unwrap().count();
         assert!(tool_run(&src, "trim", None, Some(json!({ "start": 1.0, "end": 5.0 }))).is_err());
         assert!(tool_run(&src, "trim", None, Some(json!({ "start": 1.5, "end": 1.0 }))).is_err());
         assert!(tool_run(&src, "trim", None, None).is_err());
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), before);
 
-        // Información: medidas y duración
+        // Information: measurements and duration
         let info = media_info_blocking(&st(&src)).unwrap();
         assert_eq!((info.kind.as_str(), info.width, info.height), ("video", Some(320), Some(240)));
         assert!((info.duration.unwrap() - 2.0).abs() < 0.1);
-        // Un fotograma como JPEG; un tiempo pasado del final da el primero
+        // A frame as JPEG; a time past the end gives the first one
         for seconds in [1.0, 99.0, 0.0] {
             let url = video_frame_blocking(&st(&src), seconds, 100).unwrap();
             assert!(url.starts_with("data:image/jpeg;base64,/9j/"));
@@ -1566,7 +1566,7 @@ mod tests {
             assert!((duration_of(&trimmed) - 1.0).abs() < 0.2, "{ext}: dura {}", duration_of(&trimmed));
             tool_run(&src, "strip_metadata", None, None).unwrap_or_else(|e| panic!("{ext} metadatos: {e}"));
             tool_run(&src, "mute", None, None).unwrap_or_else(|e| panic!("{ext} sin audio: {e}"));
-            // Comprimir un archivo tan pequeño puede no ahorrar nada: ese aviso también vale
+            // Compressing a file that small may save nothing: that notice is valid too
             match tool_run(&src, "compress", None, None) {
                 Ok(out) => assert!(size_of(&out) > 0, "{ext}"),
                 Err(e) => assert_eq!(e, "[optimized] Already optimized", "{ext}"),
@@ -1584,12 +1584,12 @@ mod tests {
         let dir = test_dir("rotado");
         let plain = dir.join("normal.mp4");
         make_video(&plain, "1");
-        // Mismo vídeo con la matriz de rotación de 90° (como los de un móvil en vertical)
+        // Same video with the 90° rotation matrix (like those of a phone held vertically)
         let rotated = dir.join("rotado.mp4");
         run("ffmpeg", &["-nostdin", "-v", "error", "-display_rotation:v:0", "90", "-i", &st(&plain), "-c", "copy", &st(&rotated)]);
         let info = media_info_blocking(&st(&rotated)).unwrap();
         assert_eq!((info.width, info.height), (Some(240), Some(320)));
-        // Al recodificar, ffmpeg aplica la rotación: la salida ya mide lo mismo que dice media_info
+        // When re-encoding, ffmpeg applies the rotation: the output already measures what media_info says
         let out = tool_run(&rotated, "flip", Some("horizontal"), None).unwrap();
         let info = media_info_blocking(&out).unwrap();
         assert_eq!((info.width, info.height), (Some(240), Some(320)));
@@ -1604,7 +1604,7 @@ mod tests {
         }
         let dir = test_dir("audio");
         let title = |p: &str| output("ffprobe", &["-v", "error", "-show_entries", "format_tags=title:stream_tags=title", "-of", "csv=p=0", p]);
-        // Un archivo de cada formato con título, y ruido rosa para que comprimir ahorre
+        // One file of each format with a title, and pink noise so that compressing saves something
         for (ext, codec) in [("mp3", "libmp3lame"), ("m4a", "aac"), ("ogg", "libvorbis"), ("opus", "libopus"), ("wma", "wmav2"), ("wav", "pcm_s16le"), ("flac", "flac")] {
             let src = dir.join(format!("-a [1].{ext}"));
             let high = if ext == "ogg" { vec!["-q:a", "8"] } else if matches!(ext, "wav" | "flac") { vec![] } else { vec!["-b:a", "256k"] };
@@ -1622,7 +1622,7 @@ mod tests {
             assert_eq!(title(&stripped), "", "{ext}: queda el título");
             assert!((duration_of(&stripped) - duration_of(&out)).abs() < 0.1, "{ext}");
 
-            // Recortar de 1 a 3 s: dura unos 2 s
+            // Trim from 1 to 3 s: it lasts about 2 s
             let trimmed = tool_run(&src, "trim", None, Some(json!({ "start": 1.0, "end": 3.0 }))).unwrap_or_else(|e| panic!("{ext}: {e}"));
             assert!((duration_of(&trimmed) - 2.0).abs() < 0.15, "{ext}: dura {}", duration_of(&trimmed));
 
@@ -1636,7 +1636,7 @@ mod tests {
                 assert!((duration_of(&compressed) - 6.0).abs() < 0.3, "{ext}");
             }
         }
-        // Información y forma de onda
+        // Information and waveform
         let info = media_info_blocking(&st(&dir.join("-a [1].mp3"))).unwrap();
         assert_eq!((info.kind.as_str(), info.width, info.height), ("audio", None, None));
         assert!((info.duration.unwrap() - 6.0).abs() < 0.2);
@@ -1650,7 +1650,7 @@ mod tests {
             return;
         }
         let dir = test_dir("onda");
-        // 2 s de silencio y 2 s de tono: la primera mitad vale 0 y la segunda llega a 1
+        // 2 s of silence and 2 s of tone: the first half is 0 and the second reaches 1
         let wav = dir.join("-onda [1].wav");
         let args = ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=8000",
             "-filter_complex", "[0]atrim=0:2[a];[1]atrim=0:2[b];[a][b]concat=n=2:v=0:a=1", &st(&wav)];
@@ -1661,18 +1661,18 @@ mod tests {
         assert!(peaks[..45].iter().all(|p| *p < 0.01), "el silencio no es silencio");
         assert!(peaks[55..].iter().all(|p| *p > 0.9), "el tono no suena");
         assert!(peaks.iter().cloned().fold(0.0, f32::max) == 1.0);
-        // También de un vídeo
+        // Also from a video
         let mp4 = dir.join("v.mp4");
         make_video(&mp4, "1");
         assert_eq!(waveform_blocking(&st(&mp4), 50).unwrap().len(), 50);
         assert!(waveform_blocking(&st(&wav), 0).is_err());
-        // Un vídeo sin audio no tiene forma de onda
+        // A video with no audio has no waveform
         let mute = tool_run(&mp4, "mute", None, None).unwrap();
         assert!(waveform_blocking(&mute, 50).is_err());
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // ----- PDF, progreso y cancelación -----
+    // ----- PDF, progress and cancellation -----
 
     #[test]
     fn comprime_un_pdf() {
@@ -1682,16 +1682,16 @@ mod tests {
         }
         let dir = test_dir("pdf");
         let pdf = dir.join("-doc %d [1].pdf");
-        // ImageMagick interpreta el "%d" del nombre de salida: se crea con otro nombre y se renombra
+        // ImageMagick interprets the "%d" of the output name: it is created with another name and renamed
         let plain = dir.join("tmp.pdf");
         run("magick", &["-size", "1000x800", "plasma:fractal", "-quality", "100", &st(&plain)]);
         std::fs::rename(&plain, &pdf).unwrap();
         let out = tool_run(&pdf, "compress", None, None).unwrap();
         assert_eq!(out, st(&dir.join("-doc %d [1] (compressed).pdf")));
         assert!(size_of(&out) < size_of(&st(&pdf)) * 98 / 100);
-        // Sigue siendo un PDF de una página
+        // It is still a one-page PDF
         assert!(std::fs::read(&out).unwrap().starts_with(b"%PDF"));
-        // Un archivo que no es un PDF falla y no deja salida
+        // A file that is not a PDF fails and leaves no output
         let fake = dir.join("falso.pdf");
         std::fs::write(&fake, "no soy un pdf").unwrap();
         let before = std::fs::read_dir(&dir).unwrap().count();
@@ -1709,7 +1709,7 @@ mod tests {
         let dir = test_dir("progreso");
         let src = dir.join("p.mp4");
         make_video(&src, "6");
-        // En vez del AppHandle real se guarda cada porcentaje en una lista
+        // Instead of the real AppHandle, each percentage is stored in a list
         let seen = Arc::new(Mutex::new(Vec::<f64>::new()));
         let seen_in = Arc::clone(&seen);
         let progress: Progress = Arc::new(move |p| seen_in.lock().unwrap().push(p));
@@ -1718,7 +1718,7 @@ mod tests {
         assert!(!seen.is_empty(), "no se emitió ningún porcentaje");
         assert!(seen.windows(2).all(|w| w[0] < w[1]), "no es creciente: {seen:?}");
         assert!(seen.iter().all(|p| (0.0..=99.0).contains(p)), "fuera de rango: {seen:?}");
-        // Recortar mide el avance sobre el tramo: llega cerca de 99 aunque el original sea más largo
+        // Trim measures progress over the section: it gets close to 99 even if the original is longer
         let seen = Arc::new(Mutex::new(Vec::<f64>::new()));
         let seen_in = Arc::clone(&seen);
         let progress: Progress = Arc::new(move |p| seen_in.lock().unwrap().push(p));
@@ -1736,7 +1736,7 @@ mod tests {
             return;
         }
         let dir = test_dir("cancela");
-        // Un webm largo y comprimirlo con VP9 (lento): da tiempo de sobra a cancelar
+        // A long webm and compressing it with VP9 (slow): there is plenty of time to cancel
         let src = dir.join("largo.webm");
         let args = ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25", "-t", "20", "-c:v", "libvpx", "-deadline", "realtime", "-cpu-used", "8", &st(&src)];
         run("ffmpeg", &args);
@@ -1768,7 +1768,7 @@ mod tests {
         assert_eq!(video[5].options[3].label, "1080p");
         set_lang(Lang::Es);
         assert_eq!(labels("a.mp4"), ["REDUCIR TAMAÑO", "METADATOS", "RECORTAR", "GIRAR", "VOLTEAR", "REDIMENSIONAR", "SIN AUDIO", "ZIP"]);
-        // Los ids no cambian con el idioma
+        // The ids do not change with the language
         assert_eq!(ids(&tools_of(Path::new("a.mp4"))), ["compress", "strip_metadata", "trim", "rotate", "flip", "resize", "mute", "zip"]);
         let image = tools_of(Path::new("a.png"));
         assert_eq!(image[4].options[0].label, "Horizontal");
@@ -1852,9 +1852,9 @@ mod tests {
             assert_eq!(e, text);
             assert!(has_code(&e, OPTIMIZED) && !has_code(&e, CANCELLED));
         }
-        // Otras herramientas no comprueban el ahorro
+        // Other tools do not check the saving
         assert_eq!(check_saving("rotate", &src, &out), Ok(()));
-        // Si ahorra, no hay error
+        // If it saves, there is no error
         std::fs::write(&out, vec![0u8; 500]).unwrap();
         assert_eq!(check_saving("compress", &src, &out), Ok(()));
         set_lang(Lang::En);

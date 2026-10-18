@@ -1,15 +1,15 @@
-// Geometría de la rueda (coordenadas del viewBox 460x460, centro en 230,230)
+// Geometry of the wheel (coordinates of the 460x460 viewBox, center at 230,230)
 const CENTRO = 230;
 const R_EXT = 200;
 const R_INT = 82;
-const HUECO = 7; // separación entre segmentos, en px
-const ESQUINA = 9; // radio de las esquinas redondeadas, en px
+const HUECO = 7; // gap between segments, in px
+const ESQUINA = 9; // radius of the rounded corners, in px
 
-// Devuelve el índice del segmento para un punto relativo al centro, o -1
+// Returns the index of the segment for a point relative to the center, or -1
 function segmentoEn(dx, dy, total) {
   const distancia = Math.hypot(dx, dy);
   if (total === 0 || distancia < R_INT || distancia > R_EXT) return -1;
-  // el primer segmento empieza arriba y avanza en sentido horario
+  // the first segment starts at the top and goes clockwise
   let grados = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
   grados = (grados + 360) % 360;
   return Math.min(Math.floor(grados / (360 / total)), total - 1);
@@ -20,12 +20,12 @@ function punto(grados, radio) {
   return [CENTRO + radio * Math.cos(rad), CENTRO + radio * Math.sin(rad)];
 }
 
-// ángulo (en grados) que ocupa una longitud de arco a cierto radio
+// angle (in degrees) taken up by an arc length at a given radius
 function angulo(longitud, radio) {
   return (Math.asin(longitud / radio) * 180) / Math.PI;
 }
 
-// punto a "dist" píxeles de p hacia q
+// point at "dist" pixels from p towards q
 function haciaPunto(p, q, dist) {
   const largo = Math.hypot(q[0] - p[0], q[1] - p[1]);
   const t = dist / largo;
@@ -36,7 +36,7 @@ function par(p) {
   return `${p[0].toFixed(2)} ${p[1].toFixed(2)}`;
 }
 
-// Segmento del anillo con separación y esquinas redondeadas
+// Segment of the ring with a gap and rounded corners
 function rutaSegmento(i, total) {
   const paso = 360 / total;
   const a0 = i * paso;

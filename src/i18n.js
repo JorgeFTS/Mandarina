@@ -1,5 +1,5 @@
-// Textos de la interfaz en inglés (por defecto) y español; los demás idiomas están en locales/<código>.js
-// y se registran en window.IdiomasExtra antes de cargar este archivo. Uso: I18n.init("es"); I18n.t("clave", { nombre: valor })
+// Interface texts in English (default) and Spanish; the other languages are in locales/<code>.js
+// and are registered in window.IdiomasExtra before this file is loaded. Usage: I18n.init("es"); I18n.t("key", { name: value })
 (function () {
   const en = {
     "app.title": "Mandarina",
@@ -341,13 +341,13 @@
     "demo.suffix.mute": "sin audio",
   };
 
-  // Los idiomas extra (pt, fr...) se añaden solos; uno que no existe cae en inglés
+  // The extra languages (pt, fr...) are added by themselves; one that does not exist falls back to English
   const extra = (typeof window !== "undefined" && window.IdiomasExtra) || {};
   const tablas = { en, es, ...extra };
 
   const I18n = {
     lang: "en",
-    demo: false, // en modo demo, las claves que faltan avisan en la consola
+    demo: false, // in demo mode, missing keys warn in the console
     tablas,
 
     init(lang) {
@@ -370,12 +370,12 @@
       );
     },
 
-    // plural("result.converted", 5, { ... }) usa "result.converted.one" si n es 1 y ".other" si no; {count} = n
+    // plural("result.converted", 5, { ... }) uses "result.converted.one" if n is 1 and ".other" otherwise; {count} = n
     plural(clave, n, variables) {
       return I18n.t(clave + (n === 1 ? ".one" : ".other"), { ...variables, count: n });
     },
 
-    // 12.2 en inglés, 12,2 en español
+    // 12.2 in English, 12,2 in Spanish
     num(n, decimales) {
       const formato = new Intl.NumberFormat(I18n.lang, {
         minimumFractionDigits: decimales,

@@ -21,19 +21,19 @@ const DOCUMENT_EXT: [&str; 9] = ["docx", "doc", "odt", "rtf", "md", "txt", "epub
 const SLIDES_EXT: [&str; 3] = ["pptx", "ppt", "odp"];
 const SPREADSHEET_EXT: [&str; 5] = ["xlsx", "xls", "ods", "csv", "tsv"];
 const SUBTITLE_EXT: [&str; 2] = ["srt", "vtt"];
-// rar solo se puede leer, no crear
+// rar can only be read, not created
 const ARCHIVE_EXT: [&str; 5] = ["zip", "tar", "tar.gz", "tgz", "rar"];
 
-// heic solo es entrada: ImageMagick lo lee pero no lo escribe
+// heic is input only: ImageMagick reads it but does not write it
 const IMAGE_TARGETS: [&str; 7] = ["jpg", "png", "webp", "tiff", "avif", "bmp", "pdf"];
 const AUDIO_TARGETS: [&str; 8] = ["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff", "wma"];
 const VIDEO_TARGETS: [&str; 8] = ["mp4", "mov", "mkv", "webm", "avi", "wmv", "gif", "mp3"];
-// pptx y xlsx del Python no se portan (el Python necesita openpyxl y LibreOffice no lo hace bien)
+// pptx and xlsx from the earlier Python version are not ported (Python needs openpyxl and LibreOffice does not do it well)
 const PDF_TARGETS: [&str; 6] = ["docx", "jpg", "png", "epub", "txt", "md"];
 const DOCUMENT_TARGETS: [&str; 8] = ["docx", "md", "txt", "epub", "html", "pdf", "jpg", "png"];
 const SLIDES_TARGETS: [&str; 3] = ["pdf", "jpg", "png"];
 const SPREADSHEET_TARGETS: [&str; 5] = ["xlsx", "ods", "csv", "tsv", "pdf"];
-// Filtro de LibreOffice para TSV: separador tabulador (9), sin comillas (34), UTF-8 (76), desde la fila 1
+// LibreOffice filter for TSV: tab separator (9), no quotes (34), UTF-8 (76), from row 1
 const TSV_FILTER: &str = "Text - txt - csv (StarCalc):9,34,76,1";
 const SUBTITLE_TARGETS: [&str; 3] = ["srt", "vtt", "txt"];
 const ARCHIVE_TARGETS: [&str; 3] = ["zip", "tar", "tar.gz"];
@@ -53,15 +53,15 @@ pub(crate) enum Kind {
     Folder,
 }
 
-// Función a la que se avisa del porcentaje (0 a 99) durante una conversión de ffmpeg.
-// En la app emite el evento; en las pruebas guarda los valores, sin necesitar una ventana.
+// Function that is told the percentage (0 to 99) during an ffmpeg conversion.
+// In the app it emits the event; in tests it stores the values, without needing a window.
 pub type Progress = Arc<dyn Fn(f64) + Send + Sync>;
 
-// Se pone en true desde el comando cancel; run_in lo mira cada 50 ms y mata el proceso
+// It is set to true from the cancel command; run_in looks at it every 50 ms and kills the process
 pub static CANCEL: AtomicBool = AtomicBool::new(false);
 
 pub(crate) fn get_ext(path: &Path) -> String {
-    // "tar.gz" tiene dos puntos: se trata como una sola extensión
+    // "tar.gz" has two dots: it is treated as a single extension
     if path.to_string_lossy().to_lowercase().ends_with(".tar.gz") {
         return "tar.gz".to_string();
     }
@@ -109,7 +109,7 @@ pub(crate) fn category(path: &Path) -> Option<Kind> {
     }
 }
 
-// Lista de destinos de un tipo, tal cual está en las tablas (incluye el formato propio)
+// List of targets of a type, as it is in the tables (it includes the format itself)
 pub(crate) fn type_targets(kind: Kind) -> &'static [&'static str] {
     match kind {
         Kind::Image => &IMAGE_TARGETS,
@@ -125,8 +125,8 @@ pub(crate) fn type_targets(kind: Kind) -> &'static [&'static str] {
     }
 }
 
-// true si el archivo ya está en ese formato (jpeg cuenta como jpg). Una carpeta nunca lo está:
-// "datos.zip" sigue siendo una carpeta que se puede comprimir a zip.
+// true if the file is already in that format (jpeg counts as jpg). A folder never is:
+// "data.zip" is still a folder that can be compressed to zip.
 fn is_already(path: &Path, format: &str) -> bool {
     category(path).is_some_and(|k| k != Kind::Folder) && alias(&get_ext(path)) == format
 }
@@ -142,8 +142,8 @@ fn targets_of(path: &Path) -> Vec<String> {
         .collect()
 }
 
-// Destinos que muestra la rueda para un archivo: los de targets_of, limitados y ordenados según la
-// configuración del usuario (ver config.rs). targets_of sigue siendo la lista completa que valida convert.
+// Targets the wheel shows for a file: those of targets_of, limited and ordered according to the
+// user's settings (see config.rs). targets_of is still the full list that convert validates against.
 fn shown_targets_with(path: &Path, config: &Config) -> Vec<String> {
     let all = targets_of(path);
     let Some(kind) = category(path) else {
@@ -152,7 +152,7 @@ fn shown_targets_with(path: &Path, config: &Config) -> Vec<String> {
     config.visible(kind).into_iter().filter(|t| all.iter().any(|a| a == t)).map(|t| t.to_string()).collect()
 }
 
-// Devuelve folder/stem.ext, o folder/stem 2.ext, stem 3.ext... si ya existe (como en Mac)
+// Returns folder/stem.ext, or folder/stem 2.ext, stem 3.ext... if it already exists (as on the Mac)
 pub(crate) fn unique_path(folder: &Path, stem: &str, ext: &str) -> PathBuf {
     let mut candidate = folder.join(format!("{stem}.{ext}"));
     let mut i = 2;
@@ -163,8 +163,8 @@ pub(crate) fn unique_path(folder: &Path, stem: &str, ext: &str) -> PathBuf {
     candidate
 }
 
-// Carpeta nueva para las imágenes de un resultado: nombre_media, nombre_media_2... Sin espacios, porque
-// el nombre va dentro de enlaces de Markdown y HTML.
+// New folder for the images of a result: name_media, name_media_2... With no spaces, because
+// the name goes inside Markdown and HTML links.
 fn unique_media_folder(folder: &Path, stem: &str) -> PathBuf {
     let base = format!("{}_media", stem.replace(' ', "_"));
     let mut candidate = folder.join(&base);
@@ -176,7 +176,7 @@ fn unique_media_folder(folder: &Path, stem: &str) -> PathBuf {
     candidate
 }
 
-// Igual que unique_path pero para carpetas (sin extensión): nombre, nombre 2...
+// Same as unique_path but for folders (no extension): name, name 2...
 fn unique_folder(folder: &Path, name: &str) -> PathBuf {
     let mut candidate = folder.join(name);
     let mut i = 2;
@@ -187,7 +187,7 @@ fn unique_folder(folder: &Path, name: &str) -> PathBuf {
     candidate
 }
 
-// Busca el programa en el PATH sin ejecutarlo (así no se lanza LibreOffice por comprobar)
+// Looks for the program in the PATH without running it (so LibreOffice is not launched just to check)
 pub(crate) fn tool_exists(name: &str) -> bool {
     let path = std::env::var_os("PATH").unwrap_or_default();
     std::env::split_paths(&path).any(|dir| dir.join(name).is_file())
@@ -206,7 +206,7 @@ fn run(program: &str, args: &[&str]) -> Result<(), String> {
     run_in(program, args, None)
 }
 
-// Lee un flujo (stdout o stderr) entero en un hilo, para que el proceso nunca se bloquee al llenarse la tubería
+// Reads a whole stream (stdout or stderr) in a thread, so that the process never blocks when the pipe fills up
 fn read_in_thread<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::JoinHandle<Vec<u8>> {
     std::thread::spawn(move || {
         let mut bytes = Vec::new();
@@ -217,9 +217,9 @@ fn read_in_thread<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::J
     })
 }
 
-// Segundos que indica una línea de `-progress` de ffmpeg, o None si la línea no trae tiempo.
-// out_time_us y out_time_ms vienen los dos en microsegundos (out_time_ms es un nombre mal puesto
-// de ffmpeg); out_time viene como HH:MM:SS.micros. "N/A" y los valores negativos se ignoran.
+// Seconds indicated by a line of ffmpeg's `-progress`, or None if the line carries no time.
+// out_time_us and out_time_ms are both in microseconds (out_time_ms is a misnomer
+// in ffmpeg); out_time comes as HH:MM:SS.micros. "N/A" and negative values are ignored.
 fn progress_seconds(line: &str) -> Option<f64> {
     let (key, value) = line.trim().split_once('=')?;
     let value = value.trim();
@@ -242,9 +242,9 @@ fn progress_seconds(line: &str) -> Option<f64> {
     }
 }
 
-// Porcentaje nuevo para una línea de progreso. Devuelve None si la línea no sirve, si no se
-// conoce la duración (0 o negativa) o si el valor no sube respecto a `last` (así nunca retrocede).
-// Se limita a 99: el 100 lo marca el fin de convert.
+// New percentage for a progress line. Returns None if the line is no use, if the
+// duration is not known (0 or negative) or if the value does not go up compared to `last` (so it never goes backwards).
+// It is capped at 99: 100 is marked by the end of convert.
 fn next_percent(line: &str, total: f64, last: f64) -> Option<f64> {
     if !(total > 0.0) {
         return None;
@@ -253,13 +253,13 @@ fn next_percent(line: &str, total: f64, last: f64) -> Option<f64> {
     if percent > last { Some(percent) } else { None }
 }
 
-// Duración en segundos a partir de la salida de ffprobe ("12.345\n"). "N/A" o 0 -> None.
+// Duration in seconds from the output of ffprobe ("12.345\n"). "N/A" or 0 -> None.
 fn parse_duration(text: &str) -> Option<f64> {
     let seconds = text.trim().parse::<f64>().ok()?;
     if seconds.is_finite() && seconds > 0.0 { Some(seconds) } else { None }
 }
 
-// Pregunta la duración a ffprobe. Si no está instalado o falla, None (no habrá progreso real).
+// Asks ffprobe for the duration. If it is not installed or it fails, None (there will be no real progress).
 pub(crate) fn probe_duration(src: &str) -> Option<f64> {
     if !tool_exists("ffprobe") {
         return None;
@@ -273,7 +273,7 @@ pub(crate) fn probe_duration(src: &str) -> Option<f64> {
     parse_duration(&String::from_utf8_lossy(&output.stdout))
 }
 
-// Lee el stdout de ffmpeg por líneas y avisa del porcentaje como máximo cada 100 ms
+// Reads the stdout of ffmpeg line by line and reports the percentage at most every 100 ms
 fn read_progress_in_thread<R: Read + Send + 'static>(
     stream: Option<R>,
     total: f64,
@@ -300,14 +300,14 @@ fn read_progress_in_thread<R: Read + Send + 'static>(
     })
 }
 
-// Igual que run, pero pudiendo elegir la carpeta de trabajo (la usa zip).
-// Si se activa CANCEL mata el proceso (y sus hijos) y devuelve el error con código [cancelled].
+// Same as run, but able to choose the working folder (zip uses it).
+// If CANCEL is set it kills the process (and its children) and returns the error with code [cancelled].
 pub(crate) fn run_in(program: &str, args: &[&str], dir: Option<&Path>) -> Result<(), String> {
     run_progress(program, args, dir, None)
 }
 
-// Igual que run_in; si recibe (duración total en segundos, función de progreso), lee el stdout
-// de ffmpeg (-progress pipe:1) línea a línea y avisa del porcentaje.
+// Same as run_in; if it receives (total duration in seconds, progress function), it reads the stdout
+// of ffmpeg (-progress pipe:1) line by line and reports the percentage.
 pub(crate) fn run_progress(
     program: &str,
     args: &[&str],
@@ -320,7 +320,7 @@ pub(crate) fn run_progress(
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        // Grupo de procesos propio: así se puede matar también lo que lance el programa (soffice)
+        // Own process group: that way what the program launches (soffice) can be killed too
         .process_group(0);
     if let Some(dir) = dir {
         command.current_dir(dir);
@@ -339,7 +339,7 @@ pub(crate) fn run_progress(
             kill_group(child.id());
             let _ = child.kill();
             let _ = child.wait();
-            // Al morir todos los procesos se cierran las tuberías y los hilos terminan
+            // When all the processes die the pipes close and the threads finish
             let _ = stdout_reader.join();
             let _ = stderr_reader.join();
             return Err(cancelled_error());
@@ -365,7 +365,7 @@ pub(crate) fn run_progress(
     }
 }
 
-// Mata todo el grupo de procesos del hijo (su pgid es su pid porque usamos process_group(0))
+// Kills the whole process group of the child (its pgid is its pid because we use process_group(0))
 pub(crate) fn kill_group(pid: u32) {
     let _ = Command::new("kill")
         .args(["-KILL", "--", &format!("-{pid}")])
@@ -373,12 +373,12 @@ pub(crate) fn kill_group(pid: u32) {
         .status();
 }
 
-// Ruta de texto para pasarla a un programa (las rutas ya son absolutas, nunca empiezan por "-")
+// Text path to pass it to a program (the paths are already absolute, they never start with "-")
 pub(crate) fn st(path: &Path) -> String {
     path.to_string_lossy().to_string()
 }
 
-// Carpeta temporal que se borra sola al salir de ámbito, también si hubo un error
+// Temporary folder that deletes itself when it goes out of scope, also if there was an error
 pub(crate) struct TempDir(PathBuf);
 
 static TEMP_COUNTER: AtomicUsize = AtomicUsize::new(0);
@@ -402,14 +402,14 @@ impl Drop for TempDir {
     }
 }
 
-// Crea una subcarpeta nueva y vacía dentro de parent (out, out 2...)
+// Creates a new, empty subfolder inside parent (out, out 2...)
 fn new_subdir(parent: &Path) -> Result<PathBuf, String> {
     let dir = unique_folder(parent, "out");
     std::fs::create_dir(&dir).map_err(|e| tr!("Could not create temporary folder: {e}", "No se pudo crear carpeta temporal: {e}", e = e))?;
     Ok(dir)
 }
 
-// Mueve un archivo temporal a su destino final sin pisar nada (rename o, si cambia de disco, copiar)
+// Moves a temporary file to its final destination without overwriting anything (rename or, if it changes disk, copy)
 pub(crate) fn move_file(from: &Path, to: &Path) -> Result<(), String> {
     if to.exists() {
         return Err(tr("Output file already exists", "El archivo de salida ya existe"));
@@ -440,7 +440,7 @@ fn convert_svg(src: &str, out: &str) -> Result<(), String> {
     if fmt == "png" || fmt == "pdf" {
         return run("rsvg-convert", &["-f", &fmt, "-o", out, src]);
     }
-    // Primero a PNG intermedio y luego ImageMagick hace el resto
+    // First to an intermediate PNG and then ImageMagick does the rest
     let mid = std::env::temp_dir().join(format!("mandarina_{}.png", std::process::id()));
     let mid_str = mid.to_string_lossy().to_string();
     let result = run("rsvg-convert", &["-f", "png", "-o", &mid_str, src])
@@ -451,7 +451,7 @@ fn convert_svg(src: &str, out: &str) -> Result<(), String> {
 
 fn convert_ffmpeg(src: &str, out: &str, target: &str, progress: Option<Progress>) -> Result<(), String> {
     need(&["ffmpeg"], "sudo apt install ffmpeg")?;
-    // Solo hay progreso real si hay quien lo escuche y se conoce la duración
+    // There is only real progress if someone is listening and the duration is known
     let progress = match progress {
         Some(callback) => probe_duration(src).map(|total| (total, callback)),
         None => None,
@@ -470,12 +470,12 @@ fn convert_ffmpeg(src: &str, out: &str, target: &str, progress: Option<Progress>
     run_progress("ffmpeg", &args, None, progress)
 }
 
-// Documento de referencia de los docx: A4 con márgenes de 2,5 cm y el estilo "Centered".
-// Se hizo a partir del de pandoc (`pandoc -o x.docx --print-default-data-file reference.docx`).
+// Reference document of the docx files: A4 with 2.5 cm margins and the "Centered" style.
+// It was made from pandoc's one (`pandoc -o x.docx --print-default-data-file reference.docx`).
 const REFERENCE_DOCX: &[u8] = include_bytes!("../assets/reference-a4.docx");
 const CENTER_FILTER: &str = include_str!("../assets/center.lua");
 
-// <p align="center">…</p> -> <div align="center"><p>…</p></div>. Solo la forma con comillas dobles.
+// <p align="center">…</p> -> <div align="center"><p>…</p></div>. Only the form with double quotes.
 fn wrap_centered_paragraphs(html: &str) -> String {
     const OPEN: &str = "<p align=\"center\">";
     let mut out = String::with_capacity(html.len());
@@ -484,7 +484,7 @@ fn wrap_centered_paragraphs(html: &str) -> String {
         out.push_str(&rest[..start]);
         let after = &rest[start + OPEN.len()..];
         let Some(end) = after.find("</p>") else {
-            // Sin cierre: se deja tal cual
+            // No closing tag: it is left as is
             out.push_str(&rest[start..]);
             return out;
         };
@@ -502,27 +502,27 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let folder = out.parent().unwrap_or(Path::new("."));
     let stem = get_stem(out);
     let src_dir = src.parent().unwrap_or(Path::new("."));
-    // Las imágenes de un .md se buscan junto al .md, aunque el resultado vaya a otra carpeta
+    // The images of a .md are looked up next to the .md, even if the result goes to another folder
     let resource = format!("--resource-path={}", st(src_dir));
 
-    // Un .md con HTML dentro (<table>, <img>, <br>, <b>: lo normal en el README de GitHub) pierde
-    // ese HTML al pasar directo a docx o txt: las tablas HTML salen como párrafos sueltos y las
-    // imágenes <img> desaparecen. Pasando antes por HTML, pandoc las entiende como tablas e imágenes.
+    // A .md with HTML inside (<table>, <img>, <br>, <b>: normal in a GitHub README) loses
+    // that HTML when going straight to docx or txt: HTML tables come out as loose paragraphs and
+    // <img> images disappear. Going through HTML first, pandoc understands them as tables and images.
     let tmp = TempDir::new()?;
     let mut src_text = st(src);
     let via_html = get_ext(src) == "md" && matches!(target, "docx" | "txt");
     if via_html {
         let mid = st(&tmp.path().join("mid.html"));
         run_in("pandoc", &[src_text.as_str(), "-f", "markdown", "-t", "html", "-o", mid.as_str()], Some(folder))?;
-        // pandoc pierde el align de <p>; envuelto en un <div align="center"> sí lo conserva
+        // pandoc loses the align of <p>; wrapped in a <div align="center"> it does keep it
         if let Ok(html) = std::fs::read_to_string(&mid) {
             std::fs::write(&mid, wrap_centered_paragraphs(&html))
                 .map_err(|e| tr!("Could not write the file: {e}", "No se pudo escribir el archivo: {e}", e = e))?;
         }
         src_text = mid;
     }
-    // Los docx van en A4 (pandoc usa Carta por defecto) y con el estilo "Centered" definido; el filtro
-    // lo aplica a los <div align="center">. Los dos archivos están dentro del programa (assets/).
+    // The docx files go in A4 (pandoc uses Letter by default) and with the "Centered" style defined; the filter
+    // applies it to the <div align="center">. Both files are inside the program (assets/).
     let reference = st(&tmp.path().join("reference.docx"));
     let filter = st(&tmp.path().join("center.lua"));
     let reference_arg = format!("--reference-doc={reference}");
@@ -543,11 +543,11 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     if target == "txt" {
         args.extend(["-t", "plain"]);
     }
-    // md y html enlazan las imágenes del documento: sin extraerlas, los enlaces (media/rId1.jpg)
-    // quedan rotos. Van a una carpeta nueva "<nombre>_media" junto al resultado (pandoc solo la crea si
-    // hay imágenes) y, con cwd = esa carpeta, los enlaces salen relativos y el resultado se puede mover
-    // junto con ella. El html además va completo (-s): como fragmento no lleva <meta charset> y los
-    // acentos se verían mal al abrirlo en un navegador.
+    // md and html link the images of the document: without extracting them, the links (media/rId1.jpg)
+    // end up broken. They go to a new "<name>_media" folder next to the result (pandoc only creates it if
+    // there are images) and, with cwd = that folder, the links come out relative and the result can be moved
+    // together with it. The html also goes complete (-s): as a fragment it carries no <meta charset> and the
+    // accents would look wrong when opened in a browser.
     let media_dir = unique_media_folder(folder, &stem);
     let media_arg = format!("--extract-media={}", media_dir.file_name().unwrap_or_default().to_string_lossy());
     let title = format!("pagetitle={stem}");
@@ -559,14 +559,14 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     }
     let result = run_in("pandoc", &args, Some(folder));
     if result.is_err() {
-        // La carpeta era nueva, así que si existe es nuestra
+        // The folder was new, so if it exists it is ours
         let _ = std::fs::remove_dir_all(&media_dir);
     }
     result
 }
 
-// Ejecuta LibreOffice sin ventana y devuelve el archivo producido (dentro de tmp).
-// Usa un perfil propio dentro de tmp para no chocar con un LibreOffice abierto.
+// Runs LibreOffice without a window and returns the file produced (inside tmp).
+// It uses its own profile inside tmp so it does not clash with an open LibreOffice.
 fn libreoffice(src: &Path, tmp: &Path, convert_to: &str, infilter: Option<&str>) -> Result<PathBuf, String> {
     let tool = need(&["soffice", "libreoffice"], "sudo apt install libreoffice")?;
     let outdir = new_subdir(tmp)?;
@@ -589,7 +589,7 @@ fn libreoffice(src: &Path, tmp: &Path, convert_to: &str, infilter: Option<&str>)
     }
 }
 
-// Una imagen por página a 300 DPI dentro de out_folder (la carpeta se crea aquí)
+// One image per page at 300 DPI inside out_folder (the folder is created here)
 fn pdf_to_images(pdf: &Path, out_folder: &Path, target: &str) -> Result<(), String> {
     need(&["pdftoppm"], "sudo apt install poppler-utils")?;
     std::fs::create_dir(out_folder).map_err(|e| tr!("Could not create the folder: {e}", "No se pudo crear la carpeta: {e}", e = e))?;
@@ -598,7 +598,7 @@ fn pdf_to_images(pdf: &Path, out_folder: &Path, target: &str) -> Result<(), Stri
     run("pdftoppm", &["-r", "300", flag, &st(pdf), &prefix])
 }
 
-// Ya tenemos un PDF: lo dejamos como PDF o lo partimos en imágenes (una por página)
+// We already have a PDF: we leave it as a PDF or split it into images (one per page)
 fn finish_pdf(pdf: &Path, out: &Path, target: &str) -> Result<(), String> {
     if target == "pdf" {
         move_file(pdf, out)
@@ -619,7 +619,7 @@ fn convert_pdf(src: &Path, out: &Path, target: &str) -> Result<(), String> {
             let docx = libreoffice(src, tmp.path(), "docx:MS Word 2007 XML", Some("writer_pdf_import"))?;
             move_file(&docx, out)
         }
-        // epub y md: primero a DOCX con LibreOffice y luego pandoc
+        // epub and md: first to DOCX with LibreOffice and then pandoc
         _ => {
             let docx = libreoffice(src, tmp.path(), "docx:MS Word 2007 XML", Some("writer_pdf_import"))?;
             convert_pandoc(&docx, out, target)
@@ -632,7 +632,7 @@ fn convert_document(src: &Path, out: &Path, target: &str) -> Result<(), String> 
     let tmp = TempDir::new()?;
     if matches!(target, "pdf" | "jpg" | "png") {
         let pdf = if matches!(ext.as_str(), "md" | "txt" | "html" | "htm" | "epub") {
-            // pandoc no hace PDF sin LaTeX: se pasa por DOCX y LibreOffice
+            // pandoc does not make PDF without LaTeX: it goes through DOCX and LibreOffice
             let mid = tmp.path().join("mid.docx");
             convert_pandoc(src, &mid, "docx")?;
             libreoffice(&mid, tmp.path(), "pdf", None)?
@@ -642,7 +642,7 @@ fn convert_document(src: &Path, out: &Path, target: &str) -> Result<(), String> 
         return finish_pdf(&pdf, out, target);
     }
     if ext == "doc" {
-        // pandoc no lee .doc antiguos: antes pasan a DOCX
+        // pandoc does not read old .doc files: they go to DOCX first
         let docx = libreoffice(src, tmp.path(), "docx", None)?;
         return convert_pandoc(&docx, out, target);
     }
@@ -661,14 +661,14 @@ fn convert_spreadsheet(src: &Path, out: &Path, target: &str) -> Result<(), Strin
     } else {
         target.to_string()
     };
-    // Un .tsv de entrada también hay que leerlo con el filtro de tabuladores
+    // An input .tsv also has to be read with the tab filter
     let infilter = if get_ext(src) == "tsv" { Some(TSV_FILTER) } else { None };
     let tmp = TempDir::new()?;
     let produced = libreoffice(src, tmp.path(), &convert_to, infilter)?;
     move_file(&produced, out)
 }
 
-// Quita las etiquetas <i>, <b>... de una línea
+// Removes the <i>, <b>... tags from a line
 fn strip_tags(line: &str) -> String {
     let mut text = String::new();
     let mut inside = false;
@@ -683,7 +683,7 @@ fn strip_tags(line: &str) -> String {
     text
 }
 
-// Deja solo el texto hablado: sin números, tiempos, cabecera WEBVTT, notas ni etiquetas
+// Leaves only the spoken text: no numbers, times, WEBVTT header, notes or tags
 fn subtitle_to_text(content: &str) -> String {
     let mut lines = Vec::new();
     for line in content.trim_start_matches('\u{feff}').lines() {
@@ -708,7 +708,7 @@ fn convert_subtitle(src: &Path, out: &Path, target: &str, progress: Option<Progr
     }
     let bytes = std::fs::read(src).map_err(|e| tr!("Could not read the file: {e}", "No se pudo leer el archivo: {e}", e = e))?;
     let text = subtitle_to_text(&String::from_utf8_lossy(&bytes));
-    // create_new: falla si el archivo ya existe en vez de sobrescribirlo
+    // create_new: it fails if the file already exists instead of overwriting it
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -718,7 +718,7 @@ fn convert_subtitle(src: &Path, out: &Path, target: &str, progress: Option<Progr
         .map_err(|e| tr!("Could not write the file: {e}", "No se pudo escribir el archivo: {e}", e = e))
 }
 
-// Descomprime src dentro de dest con las herramientas del sistema
+// Extracts src into dest with the system tools
 fn extract_archive(src: &Path, dest: &Path) -> Result<(), String> {
     let (src, dest) = (st(src), st(dest));
     match get_ext(Path::new(&src)).as_str() {
@@ -741,7 +741,7 @@ fn extract_archive(src: &Path, dest: &Path) -> Result<(), String> {
                 Err(tr("Cannot open RAR files. Install: sudo apt install p7zip-full", "No se pueden abrir RAR. Instala: sudo apt install p7zip-full"))
             }
         }
-        // tar, tar.gz y tgz: tar detecta solo la compresión
+        // tar, tar.gz and tgz: tar detects the compression by itself
         _ => {
             need(&["tar"], "sudo apt install tar")?;
             run("tar", &["-xf", &src, "-C", &dest])
@@ -749,7 +749,7 @@ fn extract_archive(src: &Path, dest: &Path) -> Result<(), String> {
     }
 }
 
-// Descomprime en una carpeta temporal y vuelve a comprimir en el formato pedido
+// Extracts into a temporary folder and compresses again in the requested format
 fn convert_archive(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let tmp = TempDir::new()?;
     let files = tmp.path().join("files");
@@ -757,7 +757,7 @@ fn convert_archive(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     extract_archive(src, &files)?;
     let out = st(out);
     match target {
-        // -y guarda los enlaces simbólicos como enlaces, sin seguirlos fuera de la carpeta
+        // -y stores symbolic links as links, without following them outside the folder
         "zip" => {
             need(&["zip"], "sudo apt install zip")?;
             run_in("zip", &["-r", "-q", "-y", &out, "."], Some(&files))
@@ -770,14 +770,14 @@ fn convert_archive(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     }
 }
 
-// Comprime la carpeta original (con su nombre dentro del archivo, como hace Mac).
-// Se ejecuta desde la carpeta padre; la salida va junto a la carpeta, nunca dentro.
+// Compresses the original folder (with its name inside the archive, as the Mac does).
+// It runs from the parent folder; the output goes next to the folder, never inside it.
 fn convert_folder(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let parent = src.parent().ok_or_else(|| tr("Invalid path", "Ruta no válida"))?;
     let name = src.file_name().unwrap_or_default().to_string_lossy().to_string();
     let out = st(out);
     match target {
-        // -y guarda los enlaces simbólicos como enlaces, sin seguirlos fuera de la carpeta
+        // -y stores symbolic links as links, without following them outside the folder
         "zip" => {
             need(&["zip"], "sudo apt install zip")?;
             run_in("zip", &["-r", "-q", "-y", &out, "--", &name], Some(parent))
@@ -790,9 +790,9 @@ fn convert_folder(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     }
 }
 
-// Empaqueta uno o varios archivos o carpetas (de cualquier tipo) en un solo zip, tar o tar.gz junto
-// al primero. Se enlazan en una carpeta temporal para que todos queden en la raíz del archivo,
-// vengan de donde vengan; zip sigue los enlaces y tar lo hace con -h.
+// Packs one or several files or folders (of any type) into a single zip, tar or tar.gz next
+// to the first one. They are linked in a temporary folder so that all of them end up at the root of the archive,
+// wherever they come from; zip follows the links and tar does it with -h.
 pub(crate) fn pack(paths: &[String], format: &str) -> Result<String, String> {
     let mut sources = Vec::new();
     for path in paths {
@@ -850,7 +850,7 @@ pub(crate) fn pack(paths: &[String], format: &str) -> Result<String, String> {
     Ok(out_text)
 }
 
-// Nombre sin extensión (quita ".tar.gz" entero si lo hay)
+// Name without extension (it removes the whole ".tar.gz" if there is one)
 pub(crate) fn get_stem(path: &Path) -> String {
     let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
     match name.to_lowercase().strip_suffix(".tar.gz") {
@@ -859,23 +859,23 @@ pub(crate) fn get_stem(path: &Path) -> String {
     }
 }
 
-// Convierte y devuelve la ruta del resultado.
-// pdf/documento/presentación -> jpg/png: con varias páginas la salida es una CARPETA
-// "nombre_pages" junto al original con una imagen por página; con una sola página es un archivo.
+// Converts and returns the path of the result.
+// pdf/document/presentation -> jpg/png: with several pages the output is a FOLDER
+// "name_pages" next to the original with one image per page; with a single page it is a file.
 #[cfg(test)]
 fn convert_blocking(path: &str, format: &str) -> Result<String, String> {
     convert_with(path, format, None)
 }
 
-// Igual que convert_blocking, avisando del progreso real en las conversiones de ffmpeg
+// Same as convert_blocking, reporting the real progress in ffmpeg conversions
 fn convert_with(path: &str, format: &str, progress: Option<Progress>) -> Result<String, String> {
-    // Cada conversión nueva empieza sin cancelación pendiente
+    // Every new conversion starts with no pending cancellation
     CANCEL.store(false, Ordering::SeqCst);
     convert_one(path, format, progress)
 }
 
-// Convierte un archivo sin tocar CANCEL: convert_many la usa para no perder una cancelación
-// que llegue entre un archivo y el siguiente
+// Converts a file without touching CANCEL: convert_many uses it so as not to lose a cancellation
+// that arrives between one file and the next
 fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<String, String> {
     let src = std::path::absolute(path).map_err(|e| tr!("Invalid path: {e}", "Ruta no válida: {e}", e = e))?;
     if !src.exists() {
@@ -888,7 +888,7 @@ fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<S
     }
 
     let folder = src.parent().ok_or_else(|| tr("Invalid path", "Ruta no válida"))?;
-    // Una carpeta usa su nombre completo ("datos.v2" no se recorta)
+    // A folder uses its full name ("data.v2" is not trimmed)
     let stem = if kind == Kind::Folder {
         src.file_name().unwrap_or_default().to_string_lossy().to_string()
     } else {
@@ -913,7 +913,7 @@ fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<S
         Kind::Folder => convert_folder(&src, &out, format),
     };
     if let Err(e) = result {
-        // No dejar salidas a medias, tampoco si se canceló (la ruta era nueva, así que es nuestra)
+        // Do not leave half-written outputs, not even if it was cancelled (the path was new, so it is ours)
         let _ = std::fs::remove_dir_all(&out);
         let _ = std::fs::remove_file(&out);
         return Err(e);
@@ -924,8 +924,8 @@ fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<S
     Ok(st(&out))
 }
 
-// Con una sola página no hace falta carpeta: se saca la imagen y se borra la carpeta.
-// Con varias páginas se deja la carpeta tal cual.
+// With a single page no folder is needed: the image is taken out and the folder is deleted.
+// With several pages the folder is left as it is.
 fn single_page_to_file(pages_folder: &Path, folder: &Path, stem: &str, format: &str) -> Result<String, String> {
     let files: Vec<PathBuf> = std::fs::read_dir(pages_folder)
         .map_err(|e| tr!("Could not read the folder: {e}", "No se pudo leer la carpeta: {e}", e = e))?
@@ -940,9 +940,9 @@ fn single_page_to_file(pages_folder: &Path, folder: &Path, stem: &str, format: &
     Ok(st(&final_path))
 }
 
-// Formatos para la rueda con varios archivos. Los de tipo no soportado se ignoran. Un formato
-// se ofrece si todos los soportados lo admiten según la lista de su tipo (propio formato incluido)
-// y no todos están ya en ese formato. El orden es el de la lista del primer archivo soportado.
+// Formats for the wheel with several files. Those of an unsupported type are ignored. A format
+// is offered if all the supported ones accept it according to the list of their type (the format itself included)
+// and not all of them are already in that format. The order is that of the list of the first supported file.
 fn targets_of_many(paths: &[String]) -> Vec<String> {
     targets_of_many_with(paths, &config::current())
 }
@@ -962,8 +962,8 @@ fn targets_of_many_with(paths: &[String], config: &Config) -> Vec<String> {
         .filter(|format| !files.iter().all(|(path, _)| is_already(path, format)))
         .map(|format| format.to_string())
         .collect();
-    // Varios archivos que no son comprimidos siempre se pueden empaquetar en un zip. La rueda admite
-    // 8 segmentos, así que si hace falta se quita el último formato para dejarle sitio.
+    // Several files that are not archives can always be packed into a zip. The wheel allows
+    // 8 segments, so if needed the last format is dropped to make room for it.
     if files.len() > 1 && files.iter().all(|(_, kind)| *kind != Kind::Archive) && !list.iter().any(|f| f == "zip") {
         list.truncate(7);
         list.push("zip".to_string());
@@ -971,7 +971,7 @@ fn targets_of_many_with(paths: &[String], config: &Config) -> Vec<String> {
     list
 }
 
-// Resultado de convert_many: rutas creadas, nombres saltados y fallos con su motivo
+// Result of convert_many: paths created, names skipped and failures with their reason
 #[derive(Serialize, Debug, Default, PartialEq)]
 pub struct BatchResult {
     outputs: Vec<String>,
@@ -985,8 +985,8 @@ pub struct Failure {
     error: String,
 }
 
-// Porcentaje global (0 a 99) cuando `done` archivos de `total` han terminado y el actual va por
-// `current` (0 a 100, o None si no informa de su avance)
+// Global percentage (0 to 99) when `done` files out of `total` have finished and the current one is at
+// `current` (0 to 100, or None if it does not report its progress)
 fn global_percent(done: usize, total: usize, current: Option<f64>) -> f64 {
     if total == 0 {
         return 0.0;
@@ -995,7 +995,7 @@ fn global_percent(done: usize, total: usize, current: Option<f64>) -> f64 {
     ((done as f64 + current / 100.0) / total as f64 * 100.0).clamp(0.0, 99.0)
 }
 
-// Envía el porcentaje global sin retroceder y como mucho cada 100 ms
+// Sends the global percentage without going backwards and at most every 100 ms
 struct GlobalProgress {
     sink: Progress,
     state: std::sync::Mutex<(f64, Option<Instant>)>,
@@ -1017,8 +1017,8 @@ fn file_name(path: &str) -> String {
     Path::new(path).file_name().unwrap_or_default().to_string_lossy().to_string()
 }
 
-// Núcleo de convert_many. on_file(index, total, nombre) avisa al empezar cada archivo a convertir
-// y percent recibe el porcentaje global; en la app emiten eventos y en las pruebas guardan valores.
+// Core of convert_many. on_file(index, total, name) reports when each file to convert starts
+// and percent receives the global percentage; in the app they emit events and in tests they store values.
 fn convert_many_with(
     paths: &[String],
     format: &str,
@@ -1029,13 +1029,13 @@ fn convert_many_with(
         return Err(tr("No files", "No hay archivos"));
     }
     CANCEL.store(false, Ordering::SeqCst);
-    // Se saltan los que ya están en ese formato y los no soportados no cuentan en el total
+    // Those already in that format are skipped and the unsupported ones do not count in the total
     let skip = |p: &String| is_already(Path::new(p), format);
     let total = paths
         .iter()
         .filter(|p| category(Path::new(p.as_str())).is_some() && !skip(p))
         .count();
-    // Varios archivos (ninguno comprimido) a zip, tar o tar.gz: todos juntos en un solo archivo
+    // Several files (none an archive) to zip, tar or tar.gz: all together in a single archive
     let supported: Vec<&String> = paths.iter().filter(|p| category(Path::new(p.as_str())).is_some()).collect();
     let pack_all = paths.len() > 1
         && ARCHIVE_TARGETS.contains(&format)
@@ -1098,7 +1098,7 @@ pub fn get_targets_many(paths: Vec<String>) -> Vec<String> {
 
 #[tauri::command]
 pub async fn convert(app: AppHandle, path: String, format: String) -> Result<String, String> {
-    // Evento convert-progress con { "percent": número }; el 100 lo marca la interfaz al terminar
+    // convert-progress event with { "percent": number }; 100 is marked by the interface when it ends
     let progress: Progress = Arc::new(move |percent| {
         let _ = app.emit("convert-progress", serde_json::json!({ "percent": percent }));
     });
@@ -1107,8 +1107,8 @@ pub async fn convert(app: AppHandle, path: String, format: String) -> Result<Str
         .map_err(|e| tr!("Internal error: {e}", "Error interno: {e}", e = e))?
 }
 
-// Eventos: convert-file { index, total, name } al empezar cada archivo y
-// convert-progress { percent } global (el 100 lo marca la interfaz al terminar)
+// Events: convert-file { index, total, name } when each file starts and
+// global convert-progress { percent } (100 is marked by the interface when it ends)
 #[tauri::command]
 pub async fn convert_many(app: AppHandle, paths: Vec<String>, format: String) -> Result<BatchResult, String> {
     let app_progress = app.clone();
@@ -1130,7 +1130,7 @@ pub(crate) mod tests {
     use super::*;
     use std::sync::Mutex;
 
-    // CANCEL es global: las pruebas que convierten o cancelan no pueden correr a la vez
+    // CANCEL is global: the tests that convert or cancel cannot run at the same time
     static LOCK: Mutex<()> = Mutex::new(());
 
     pub(crate) fn lock() -> std::sync::MutexGuard<'static, ()> {
@@ -1162,7 +1162,7 @@ pub(crate) mod tests {
     fn alias_de_extensiones() {
         assert!(!targets_of(Path::new("a.jpeg")).contains(&"jpg".to_string()));
         assert!(!targets_of(Path::new("a.tif")).contains(&"tiff".to_string()));
-        // heic/heif se leen, pero ya no son destino
+        // heic/heif are read, but they are no longer a target
         assert!(!targets_of(Path::new("a.heif")).contains(&"heic".to_string()));
         assert!(!targets_of(Path::new("a.png")).contains(&"heic".to_string()));
         assert!(targets_of(Path::new("a.heic")).contains(&"jpg".to_string()));
@@ -1231,7 +1231,7 @@ pub(crate) mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // Carpeta temporal propia de cada prueba
+    // Temporary folder of each test
     fn test_dir(name: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!("mandarina_t_{}_{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -1239,7 +1239,7 @@ pub(crate) mod tests {
         dir
     }
 
-    // PDF mínimo de una página con el texto "Hola mundo"
+    // Minimal one-page PDF with the text "Hola mundo"
     fn write_test_pdf(path: &Path) {
         let pdf = "%PDF-1.4\n\
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n\
@@ -1299,7 +1299,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         write_test_pdf(&pdf);
         let txt = convert_blocking(pdf.to_str().unwrap(), "txt").unwrap();
         assert!(std::fs::read_to_string(&txt).unwrap().contains("Hola mundo"));
-        // Una sola página: archivo suelto y sin carpeta sobrante
+        // A single page: a loose file and no leftover folder
         let png = convert_blocking(pdf.to_str().unwrap(), "png").unwrap();
         assert!(png.ends_with("-hoja.png"));
         assert!(Path::new(&png).is_file());
@@ -1359,7 +1359,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let xlsx = convert_blocking(csv.to_str().unwrap(), "xlsx").unwrap();
         assert!(std::fs::metadata(&xlsx).unwrap().len() > 0);
         let tsv = convert_blocking(csv.to_str().unwrap(), "tsv").unwrap();
-        // LibreOffice entrecomilla los textos con este filtro (igual que en el Python)
+        // LibreOffice quotes the texts with this filter (same as in the earlier Python version)
         let text = std::fs::read_to_string(&tsv).unwrap().replace('"', "");
         assert_eq!(text.trim(), "a\tb\n1\t2");
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1373,7 +1373,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert_eq!(targets_of(Path::new("a.tar")), ["zip", "tar.gz"]);
         assert_eq!(targets_of(Path::new("a.TAR.GZ")), ["zip", "tar"]);
         assert_eq!(targets_of(Path::new("a.tgz")), ["zip", "tar"]);
-        // rar solo es entrada
+        // rar is input only
         assert_eq!(targets_of(Path::new("a.rar")), ["zip", "tar", "tar.gz"]);
         assert!(!targets_of(Path::new("a.zip")).contains(&"rar".to_string()));
     }
@@ -1421,7 +1421,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         run_in("zip", &["-q", &st(&zip), "--", "-hola.txt"], Some(&dir)).unwrap();
         let tgz = convert_blocking(zip.to_str().unwrap(), "tar.gz").unwrap();
         assert!(tgz.ends_with("-pack.tar.gz"));
-        // De vuelta a zip desde el tar.gz: sigue el nombre sin ".tar"
+        // Back to zip from the tar.gz: it follows the name without ".tar"
         let back = convert_blocking(&tgz, "zip").unwrap();
         assert!(back.ends_with("-pack 2.zip"));
         let list = Command::new("tar").args(["-tzf", &tgz]).output().unwrap();
@@ -1432,7 +1432,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
     #[test]
     fn destinos_de_carpeta() {
         let dir = test_dir("destinos_carpeta");
-        // Una carpeta que se llama "datos.zip" sigue pudiendo ir a zip
+        // A folder named "data.zip" can still go to zip
         let folder = dir.join("datos.zip");
         std::fs::create_dir(&folder).unwrap();
         assert_eq!(targets_of(&folder), ["zip", "tar", "tar.gz"]);
@@ -1459,7 +1459,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert!(String::from_utf8_lossy(&list.stdout).contains("Mi Carpeta/sub/-a.txt"));
         let tar = convert_blocking(folder.to_str().unwrap(), "tar").unwrap();
         assert!(tar.ends_with("Mi Carpeta.tar"));
-        // La carpeta original sigue intacta
+        // The original folder is still intact
         assert!(folder.join("sub").join("-a.txt").is_file());
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -1473,7 +1473,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             CANCEL.store(true, Ordering::SeqCst);
         });
         let start = std::time::Instant::now();
-        // sh lanza un "sleep" nieto: también debe morir
+        // sh launches a grandchild "sleep": it must die too
         let result = run("sh", &["-c", "sleep 31.77; true"]);
         canceller.join().unwrap();
         CANCEL.store(false, Ordering::SeqCst);
@@ -1498,7 +1498,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             &["-nostdin", "-f", "lavfi", "-i", "testsrc2=size=640x360:rate=25", "-t", "20", "-c:v", "mpeg4", &st(&src)],
         )
         .unwrap();
-        // convert_blocking pone CANCEL en false al empezar, así que se cancela algo después
+        // convert_blocking sets CANCEL to false at the start, so it is cancelled a little later
         let canceller = std::thread::spawn(|| {
             std::thread::sleep(Duration::from_millis(700));
             CANCEL.store(true, Ordering::SeqCst);
@@ -1514,12 +1514,12 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
 
     #[test]
     fn lee_el_tiempo_de_las_lineas_de_progreso() {
-        // out_time_us y out_time_ms vienen en microsegundos
+        // out_time_us and out_time_ms come in microseconds
         assert_eq!(progress_seconds("out_time_us=1500000"), Some(1.5));
         assert_eq!(progress_seconds("out_time_ms=2000000"), Some(2.0));
         assert_eq!(progress_seconds("out_time=00:01:02.500000"), Some(62.5));
         assert_eq!(progress_seconds("  out_time_us=500000  "), Some(0.5));
-        // Sin tiempo conocido o con otras claves
+        // With no known time or with other keys
         assert_eq!(progress_seconds("out_time_us=N/A"), None);
         assert_eq!(progress_seconds("out_time=N/A"), None);
         assert_eq!(progress_seconds("out_time_us=-9223372036854775807"), None);
@@ -1532,15 +1532,15 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
     fn calcula_el_porcentaje() {
         assert_eq!(next_percent("out_time_us=1000000", 4.0, -1.0), Some(25.0));
         assert_eq!(next_percent("out_time=00:00:02.000000", 4.0, 25.0), Some(50.0));
-        // Duración desconocida o cero: nada
+        // Unknown or zero duration: nothing
         assert_eq!(next_percent("out_time_us=1000000", 0.0, -1.0), None);
         assert_eq!(next_percent("out_time_us=1000000", -3.0, -1.0), None);
         assert_eq!(next_percent("out_time_us=1000000", f64::NAN, -1.0), None);
         assert_eq!(next_percent("out_time_us=N/A", 4.0, -1.0), None);
-        // Nunca retrocede ni se repite
+        // It never goes backwards or repeats
         assert_eq!(next_percent("out_time_us=1000000", 4.0, 50.0), None);
         assert_eq!(next_percent("out_time_us=2000000", 4.0, 50.0), None);
-        // Tope en 99 (y una vez en 99 ya no se emite más)
+        // Cap at 99 (and once at 99 no more is emitted)
         assert_eq!(next_percent("out_time_us=4000000", 4.0, 50.0), Some(99.0));
         assert_eq!(next_percent("out_time_us=9000000", 4.0, 50.0), Some(99.0));
         assert_eq!(next_percent("out_time_us=9000000", 4.0, 99.0), None);
@@ -1564,7 +1564,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let dir = test_dir("progreso");
         let wav = dir.join("tres.wav");
         run("ffmpeg", &["-nostdin", "-f", "lavfi", "-i", "sine=duration=3", &st(&wav)]).unwrap();
-        // En vez del AppHandle real se guarda cada porcentaje en una lista
+        // Instead of the real AppHandle, each percentage is stored in a list
         let seen = Arc::new(std::sync::Mutex::new(Vec::<f64>::new()));
         let seen_in = Arc::clone(&seen);
         let progress: Progress = Arc::new(move |p| seen_in.lock().unwrap().push(p));
@@ -1591,7 +1591,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let progress: Progress = Arc::new(move |_| {
             count_in.fetch_add(1, Ordering::SeqCst);
         });
-        // Un subtítulo no tiene duración útil: la conversión funciona igual, sin eventos
+        // A subtitle has no useful duration: the conversion works the same, with no events
         let out = convert_with(srt.to_str().unwrap(), "vtt", Some(progress)).unwrap();
         assert!(Path::new(&out).is_file());
         assert_eq!(count.load(Ordering::SeqCst), 0);
@@ -1630,7 +1630,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             need(&["herramienta_que_no_existe"], "sudo apt install x"),
             Err("herramienta_que_no_existe not found. Install it with: sudo apt install x".to_string())
         );
-        // Con varias opciones basta con que exista una
+        // With several options it is enough that one exists
         assert_eq!(need(&["herramienta_que_no_existe", "sh"], "x"), Ok("sh".to_string()));
     }
 
@@ -1654,7 +1654,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF"));
         let jpg = convert_blocking(svg.to_str().unwrap(), "jpg").unwrap();
         assert!(std::fs::read(&jpg).unwrap().starts_with(&[0xFF, 0xD8]));
-        // El PNG intermedio del paso a jpg no debe quedar en el temporal
+        // The intermediate PNG of the step to jpg must not be left in the temp folder
         let left = dir.read_dir().unwrap().count();
         assert_eq!(left, 4, "svg + png + pdf + jpg");
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1679,8 +1679,8 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // No hay forma de crear un .rar sin el programa "rar" (7z solo lo lee), así que esta prueba
-    // se salta si no está instalado
+    // There is no way to create a .rar without the "rar" program (7z only reads it), so this test
+    // is skipped if it is not installed
     #[test]
     fn convierte_rar_a_zip() {
         let _guard = lock();
@@ -1721,18 +1721,18 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         std::fs::write(dir.join("a.txt"), "uno").unwrap();
         std::fs::write(dir.join("b.png"), "dos").unwrap();
         let (a, b) = (st(&dir.join("a.txt")), st(&dir.join("b.png")));
-        // Un archivo suelto: nombre.zip con el archivo en la raíz
+        // A single file: name.zip with the file at the root
         let one = pack(&[a.clone()], "zip").unwrap();
         assert_eq!(one, st(&dir.join("a.zip")));
         let listing = capture_list(&one);
         assert!(listing.contains("a.txt"), "{listing}");
-        // Varios, de tipos distintos: un solo "Archive.zip" (o "Archivo.zip") con todos
+        // Several, of different types: a single "Archive.zip" (or "Archivo.zip") with all of them
         let both = convert_many_with(&[a.clone(), b.clone()], "zip", &|_, _, _| {}, Arc::new(|_| {})).unwrap();
         assert_eq!(both.outputs.len(), 1);
         assert!(both.failed.is_empty());
         let listing = capture_list(&both.outputs[0]);
         assert!(listing.contains("a.txt") && listing.contains("b.png"), "{listing}");
-        // tar.gz conserva el contenido y no sobrescribe
+        // tar.gz keeps the content and does not overwrite
         let tgz = pack(&[a, b], "tar.gz").unwrap();
         assert!(std::fs::metadata(&tgz).unwrap().len() > 0);
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1750,16 +1750,16 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
     #[test]
     fn la_configuracion_limita_y_ordena_los_destinos() {
         let config = config_with(r#"{"formats": {"image": ["webp", "pdf", "png", "jpg"]}}"#);
-        // Un jpg ve los elegidos sin el suyo, en el orden elegido
+        // A jpg sees the chosen ones without its own, in the chosen order
         assert_eq!(shown_targets_with(Path::new("a.jpg"), &config), ["webp", "pdf", "png"]);
-        // Un tipo sin configurar no cambia
+        // A type with nothing configured does not change
         assert_eq!(shown_targets_with(Path::new("a.mp3"), &config), targets_of(Path::new("a.mp3")));
-        // La validación de convert sigue usando la lista completa
+        // The validation of convert still uses the full list
         assert!(targets_of(Path::new("a.jpg")).contains(&"bmp".to_string()));
-        // Varios: se usa lo elegido, y ZIP siempre
+        // Several: what was chosen is used, and ZIP always
         let list = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<String>>();
         assert_eq!(targets_of_many_with(&list(&["a.png", "b.png"]), &config), ["webp", "pdf", "jpg", "zip"]);
-        // Imagen + documento: lo elegido para la imagen que el documento también muestra, en el orden elegido
+        // Image + document: what was chosen for the image that the document also shows, in the chosen order
         assert_eq!(targets_of_many_with(&list(&["a.png", "b.docx"]), &config), ["pdf", "png", "jpg", "zip"]);
     }
 
@@ -1773,7 +1773,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         run("magick", &["-size", "40x30", "xc:orange", &st(&dir.join("foto.png"))]).unwrap();
         std::fs::write(dir.join("doc.md"), "# Título ñandú\n\nTexto con acción.\n\n![Una foto](foto.png)\n").unwrap();
         run_in("pandoc", &["doc.md", "-o", "con.docx"], Some(&dir)).unwrap();
-        // Sin imágenes: no debe quedar ninguna carpeta de más
+        // Without images: no extra folder must be left
         std::fs::write(dir.join("solo.md"), "# Hola\n\ntexto\n").unwrap();
         run_in("pandoc", &["solo.md", "-o", "solo.docx"], Some(&dir)).unwrap();
 
@@ -1782,12 +1782,12 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert!(text.contains("<meta charset=\"utf-8\""), "el html debe ser completo");
         assert!(text.contains("<title>con</title>"), "{text}");
         assert!(text.contains("ñandú"));
-        // El enlace es relativo a la carpeta del resultado y la imagen existe
+        // The link is relative to the folder of the result and the image exists
         let link = text.split("<img src=\"").nth(1).unwrap().split('"').next().unwrap().to_string();
         assert!(link.starts_with("con_media/"), "{link}");
         assert!(dir.join(&link).is_file(), "falta la imagen {link}");
 
-        // El md va a otra carpeta (con_media ya existe): con_media_2, sin espacios en el enlace
+        // The md goes to another folder (con_media already exists): con_media_2, no spaces in the link
         let md = convert_blocking(&st(&dir.join("con.docx")), "md").unwrap();
         let md_text = std::fs::read_to_string(&md).unwrap();
         let md_link = md_text.split("](").nth(1).unwrap().split(')').next().unwrap().to_string();
@@ -1798,7 +1798,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let plain = convert_blocking(&st(&dir.join("solo.docx")), "html").unwrap();
         assert!(!dir.join("solo_media").exists(), "sin imágenes no debe quedar carpeta");
         assert!(std::fs::read_to_string(plain).unwrap().contains("<meta charset"));
-        // txt no extrae nada
+        // txt extracts nothing
         convert_blocking(&st(&dir.join("con.docx")), "txt").unwrap();
         assert!(!dir.join("con_media_3").exists());
         std::fs::remove_dir_all(&dir).unwrap();
@@ -1810,7 +1810,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             wrap_centered_paragraphs("a<p align=\"center\"><img src=\"x.png\"></p>b<p>normal</p><p align=\"center\">dos</p>"),
             "a<div align=\"center\"><p><img src=\"x.png\"></p></div>b<p>normal</p><div align=\"center\"><p>dos</p></div>"
         );
-        // Sin cierre se deja igual; sin nada que cambiar, también
+        // With no closing tag it is left the same; with nothing to change, too
         assert_eq!(wrap_centered_paragraphs("x<p align=\"center\">sin cierre"), "x<p align=\"center\">sin cierre");
         assert_eq!(wrap_centered_paragraphs("<p>nada</p>"), "<p>nada</p>");
     }
@@ -1834,27 +1834,27 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let docx = convert_blocking(&st(&dir.join("informe.md")), "docx").unwrap();
         let output = std::process::Command::new("unzip").args(["-p", docx.as_str(), "word/document.xml"]).output().unwrap();
         let xml = String::from_utf8_lossy(&output.stdout).to_string();
-        // La tabla de Markdown y la HTML son dos tablas reales (antes la HTML salía como párrafos)
+        // The Markdown table and the HTML one are two real tables (the HTML one used to come out as paragraphs)
         assert_eq!(xml.matches("<w:tbl>").count(), 2, "{xml}");
-        // El logo (<img> HTML) y la imagen normal
+        // The logo (<img> HTML) and the normal image
         assert_eq!(xml.matches("<w:drawing>").count(), 2);
         assert!(xml.contains("Ana") && xml.contains("López") && xml.contains("negrita"));
-        // Hoja A4 (11906 x 16838 twips) y el logo, que iba en un <p align="center">, centrado
+        // A4 page (11906 x 16838 twips) and the logo, which was in a <p align="center">, centered
         assert!(xml.contains("11906") && xml.contains("16838"), "debe ser A4");
-        // Centrado: el logo (<p align="center">) y el texto del <div align="center">
+        // Centering: the logo (<p align="center">) and the text of the <div align="center">
         assert_eq!(xml.matches("w:val=\"Centered\"").count(), 2, "{xml}");
-        // El <div style="page-break-before: always"> vacío pasa a ser un salto de página
+        // The empty <div style="page-break-before: always"> becomes a page break
         assert_eq!(xml.matches("w:type=\"page\"").count(), 1);
-        // También a txt: la tabla HTML no se pierde
+        // Also to txt: the HTML table is not lost
         let txt = convert_blocking(&st(&dir.join("informe.md")), "txt").unwrap();
         let text = std::fs::read_to_string(txt).unwrap();
         assert!(text.contains("Campo") && text.contains("nombre") && text.contains("López"), "{text}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // Prueba manual con un archivo real, para ver cómo queda una conversión concreta sin abrir la app:
+    // Manual test with a real file, to see how a specific conversion turns out without opening the app:
     //   MANDARINA_REAL=/ruta/archivo.md MANDARINA_FORMAT=docx cargo test archivo_real -- --ignored --nocapture
-    // El resultado se crea junto al archivo, como en la app.
+    // The result is created next to the file, as in the app.
     #[test]
     #[ignore]
     fn archivo_real() {
@@ -1871,12 +1871,12 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
 
     #[test]
     fn varios_del_mismo_tipo() {
-        // Tres png: se ofrece todo menos png (todos ya lo son)
+        // Three png: everything but png is offered (they all already are)
         assert_eq!(
             targets_of_many(&list(&["a.png", "b.png", "c.png"])),
             ["jpg", "webp", "tiff", "avif", "bmp", "pdf", "zip"]
         );
-        // png y jpg mezclados: jpg y png también, porque no todos están ya en ese formato
+        // png and jpg mixed: jpg and png too, because not all of them are already in that format
         assert_eq!(
             targets_of_many(&list(&["a.png", "b.jpeg"])),
             ["jpg", "png", "webp", "tiff", "avif", "bmp", "pdf", "zip"]
@@ -1885,17 +1885,17 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
 
     #[test]
     fn varios_de_tipos_mezclados() {
-        // Imagen + documento + presentación: solo lo común, en el orden de la imagen
+        // Image + document + presentation: only what they have in common, in the order of the image
         assert_eq!(targets_of_many(&list(&["a.png", "b.docx", "c.pptx"])), ["jpg", "png", "pdf", "zip"]);
-        // Con una presentación primero cambia el orden
+        // With a presentation first the order changes
         assert_eq!(targets_of_many(&list(&["c.pptx", "a.png"])), ["pdf", "jpg", "png", "zip"]);
-        // Imagen + documento en pdf: pdf lo admiten los dos y ninguno es pdf
+        // Image + document to pdf: both support pdf and neither is pdf
         assert!(targets_of_many(&list(&["a.png", "b.docx"])).contains(&"pdf".to_string()));
-        // Audio + vídeo: solo mp3 es común
+        // Audio + video: only mp3 is common
         assert_eq!(targets_of_many(&list(&["a.wav", "b.mp4"])), ["mp3", "zip"]);
-        // Sin nada en común salvo empaquetar en zip
+        // Nothing in common except packing into zip
         assert_eq!(targets_of_many(&list(&["a.png", "b.mp3"])), ["zip"]);
-        // Un pdf y un documento: el pdf no tiene "pdf" en su lista, así que no es común
+        // A pdf and a document: the pdf has no "pdf" in its list, so it is not common
         assert!(!targets_of_many(&list(&["a.pdf", "b.docx"])).contains(&"pdf".to_string()));
     }
 
@@ -1903,29 +1903,29 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
     fn varios_con_archivos_no_soportados() {
         assert!(targets_of_many(&[]).is_empty());
         assert!(targets_of_many(&list(&["a.xyz", "b"])).is_empty());
-        // Un soportado y otro no: el no soportado se ignora
+        // One supported and another not: the unsupported one is ignored
         assert_eq!(targets_of_many(&list(&["a.xyz", "b.png"])), targets_of(Path::new("b.png")));
         assert_eq!(targets_of_many(&list(&["b.png", "a.xyz"])), targets_of(Path::new("b.png")));
     }
 
     #[test]
     fn porcentaje_global() {
-        // Un solo archivo: coincide con su propio avance
+        // A single file: it matches its own progress
         assert_eq!(global_percent(0, 1, Some(40.0)), 40.0);
         assert_eq!(global_percent(0, 1, None), 0.0);
-        // Tope 99, también al terminar el último
+        // Cap at 99, also when the last one finishes
         assert_eq!(global_percent(1, 1, None), 99.0);
         assert_eq!(global_percent(0, 1, Some(100.0)), 99.0);
-        // Varios archivos sin avance propio: salta al terminar cada uno
+        // Several files with no progress of their own: it jumps when each one finishes
         assert_eq!(global_percent(0, 4, None), 0.0);
         assert_eq!(global_percent(1, 4, None), 25.0);
         assert_eq!(global_percent(3, 4, None), 75.0);
-        // Varios con avance propio: (1 + 0.5) / 3
+        // Several with progress of their own: (1 + 0.5) / 3
         assert_eq!(global_percent(1, 3, Some(50.0)), 50.0);
-        // Sin archivos o con valores raros no se sale de rango
+        // With no files or with odd values it does not go out of range
         assert_eq!(global_percent(0, 0, None), 0.0);
         assert_eq!(global_percent(0, 2, Some(500.0)), 50.0);
-        // Monótono: cada paso (avance del actual, luego terminar) nunca baja
+        // Monotonic: each step (progress of the current one, then finishing) never goes down
         let mut last = 0.0;
         for done in 0..5 {
             for current in [None, Some(0.0), Some(30.0), Some(99.0), Some(100.0)] {
@@ -1945,17 +1945,17 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             state: std::sync::Mutex::new((-1.0, None)),
         };
         global.send(10.0);
-        // Demasiado pronto (menos de 100 ms): se descarta
+        // Too soon (less than 100 ms): it is discarded
         global.send(20.0);
         std::thread::sleep(Duration::from_millis(120));
-        // Retrocede o repite: se descarta
+        // It goes backwards or repeats: it is discarded
         global.send(5.0);
         global.send(10.0);
         global.send(30.0);
         assert_eq!(*seen.lock().unwrap(), [10.0, 30.0]);
     }
 
-    // Carpeta con n audios wav de `secs` segundos, llamados -tono 1.wav, -tono 2.wav...
+    // Folder with n wav audios of `secs` seconds, named -tono 1.wav, -tono 2.wav...
     fn make_wavs(dir: &Path, n: usize, secs: &str) -> Vec<String> {
         (1..=n)
             .map(|i| {
@@ -1967,7 +1967,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             .collect()
     }
 
-    // Registro de eventos para las pruebas de convert_many
+    // Event log for the convert_many tests
     type Log = Arc<std::sync::Mutex<Vec<(usize, usize, String)>>>;
     type Percents = Arc<std::sync::Mutex<Vec<f64>>>;
 
@@ -1989,7 +1989,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         }
         let dir = test_dir("varios");
         let mut paths = make_wavs(&dir, 3, "0.3");
-        // Uno que ya es flac, uno corrupto y uno de tipo no soportado
+        // One that is already flac, one corrupt and one of an unsupported type
         let flac = dir.join("-ya.flac");
         run("ffmpeg", &["-nostdin", "-f", "lavfi", "-i", "sine=duration=0.2", &st(&flac)]).unwrap();
         let broken = dir.join("-roto.wav");
@@ -2011,9 +2011,9 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert_eq!(result.failed[0].name, "-roto.wav");
         assert!(!result.failed[0].error.is_empty());
         assert_eq!(result.failed[1], Failure { name: "-raro.xyz".into(), error: "Unsupported file type".into() });
-        // El corrupto no deja salida a medias
+        // The corrupt one does not leave a half-written output
         assert!(!dir.join("-roto.flac").exists());
-        // Eventos: 4 a convertir (3 buenos y el corrupto), índices desde 1; el .flac y el .xyz no cuentan
+        // Events: 4 to convert (3 good and the corrupt one), indices from 1; the .flac and the .xyz do not count
         let files = files.lock().unwrap();
         let expected: Vec<(usize, usize, String)> = ["-tono 1.wav", "-roto.wav", "-tono 2.wav", "-tono 3.wav"]
             .iter()
@@ -2024,10 +2024,10 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let percents = percents.lock().unwrap();
         assert!(percents.windows(2).all(|w| w[0] < w[1]), "no es creciente: {percents:?}");
         assert!(percents.iter().all(|p| (0.0..=99.0).contains(p)), "fuera de rango: {percents:?}");
-        // Con el nombre ya existente se numera, igual que convert
+        // With the name already existing it is numbered, the same as convert
         let again = convert_many_with(&paths[..1], "flac", &|_, _, _| {}, Arc::new(|_| {})).unwrap();
         assert!(again.outputs[0].ends_with("-tono 1 2.flac"));
-        // Lista vacía
+        // Empty list
         let empty = convert_many_with(&[], "flac", &|_, _, _| {}, Arc::new(|_| {}));
         assert!(empty.is_err());
         std::fs::remove_dir_all(&dir).unwrap();
@@ -2051,7 +2051,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let last = dir.join("-ultimo.mkv");
         std::fs::copy(&long, &last).unwrap();
         let paths = vec![st(&short), st(&long), st(&last)];
-        // Al empezar el segundo archivo, otro hilo cancela medio segundo después
+        // When the second file starts, another thread cancels half a second later
         let on_file = |index: usize, _: usize, _: &str| {
             if index == 2 {
                 std::thread::spawn(|| {
@@ -2061,11 +2061,11 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
             }
         };
         let result = convert_many_with(&paths, "webm", &on_file, Arc::new(|_| {}));
-        // Espera a que el hilo de la cancelación termine antes de limpiar el flag
+        // Waits for the cancellation thread to finish before clearing the flag
         std::thread::sleep(Duration::from_millis(100));
         CANCEL.store(false, Ordering::SeqCst);
         assert_eq!(result.unwrap_err(), "[cancelled] Cancelled");
-        // El primero se conserva; el cancelado no deja salida a medias y el tercero ni se toca
+        // The first one is kept; the cancelled one leaves no half-written output and the third is not even touched
         let mut names: Vec<String> = std::fs::read_dir(&dir)
             .unwrap()
             .flatten()
@@ -2076,9 +2076,9 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    // ----- Mensajes en los dos idiomas -----
+    // ----- Messages in both languages -----
 
-    // Lanza un proceso largo con CANCEL ya activado: run_in lo mata enseguida
+    // Launches a long process with CANCEL already set: run_in kills it right away
     fn cancelled_run() -> Result<(), String> {
         CANCEL.store(true, Ordering::SeqCst);
         let result = run_in("sleep", &["5"], None);

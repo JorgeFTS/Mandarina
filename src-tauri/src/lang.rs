@@ -1,4 +1,4 @@
-// Idioma de la app: inglés (por defecto), español, portugués y francés. Ver docs/Idiomas.md.
+// App language: English (default), Spanish, Portuguese and French. See docs/Languages.md.
 #[cfg(test)]
 use std::cell::Cell;
 use std::collections::HashMap;
@@ -14,8 +14,8 @@ pub enum Lang {
     Fr,
 }
 
-// Idiomas disponibles: código y nombre en su propio idioma. El código es lo que se guarda en los
-// ajustes, lo que devuelve get_language y el principio de LANG ("pt_BR.UTF-8" -> "pt").
+// Available languages: code and name in their own language. The code is what is saved in the
+// settings, what get_language returns and the start of LANG ("pt_BR.UTF-8" -> "pt").
 pub const LANGUAGES: [(&str, &str, Lang); 4] =
     [("en", "English", Lang::En), ("es", "Español", Lang::Es), ("pt", "Português", Lang::Pt), ("fr", "Français", Lang::Fr)];
 
@@ -29,22 +29,22 @@ impl Lang {
     }
 }
 
-// ---------- Códigos estables de error (no se traducen) ----------
-// Dos errores tienen un significado especial para la interfaz y para la lógica interna. Como el
-// texto cambia con el idioma, la cadena de error empieza por un código entre corchetes, un espacio
-// y el texto traducido:
-//   "[cancelled] Cancelled"  / "[cancelled] Cancelado"        (el usuario canceló)
-//   "[optimized] Already optimized" / "[optimized] Ya está optimizado"  (comprimir no ahorra nada)
-// Para reconocerlos se usa `has_code`, nunca el texto traducido.
+// ---------- Stable error codes (they are not translated) ----------
+// Two errors have a special meaning for the interface and for the internal logic. Since the
+// text changes with the language, the error string starts with a code in square brackets, a space
+// and the translated text:
+// "[cancelled] Cancelled"  / "[cancelled] Cancelado"        (the user cancelled)
+// "[optimized] Already optimized" / "[optimized] Ya está optimizado"  (reducing the size saves nothing)
+// To recognize them `has_code` is used, never the translated text.
 pub const CANCELLED: &str = "[cancelled]";
 pub const OPTIMIZED: &str = "[optimized]";
 
-// Error con código: "[código] texto"
+// Error with a code: "[code] text"
 pub fn coded(code: &str, text: &str) -> String {
     format!("{code} {text}")
 }
 
-// true si el mensaje de error empieza por ese código
+// true if the error message starts with that code
 pub fn has_code(message: &str, code: &str) -> bool {
     message.starts_with(code)
 }
@@ -57,16 +57,16 @@ pub fn optimized_error() -> String {
     coded(OPTIMIZED, &tr("Already optimized", "Ya está optimizado"))
 }
 
-// ---------- Detección ----------
+// ---------- Detection ----------
 
-// Variables de entorno que deciden el idioma, en orden de prioridad
+// Environment variables that decide the language, in order of priority
 const VARIABLES: [&str; 5] = ["MANDARINA_LANG", "LC_ALL", "LC_MESSAGES", "LANGUAGE", "LANG"];
 
-// Función pura: `read` es el "lector de entorno" (en la app lee las variables reales y en las pruebas
-// una tabla). Decide la primera variable que exista y no esté vacía: si su valor empieza por "es"
-// (sin distinguir mayúsculas, p. ej. "es_PE.UTF-8") es español; cualquier otro valor ("C", "en_US",
-// "fr"...) es inglés. En LANGUAGE solo cuenta el primer idioma de la lista ("es:en" -> "es").
-// Si no hay ninguna variable, inglés.
+// Pure function: `read` is the "environment reader" (in the app it reads the real variables and in tests
+// a table). The first variable that exists and is not empty decides: if its value starts with "es"
+// (case-insensitive, e.g. "es_PE.UTF-8") it is Spanish; any other value ("C", "en_US",
+// "fr"...) is English. In LANGUAGE only the first language of the list counts ("es:en" -> "es").
+// If there is no variable, English.
 pub fn detect(read: impl Fn(&str) -> Option<String>) -> Lang {
     for name in VARIABLES {
         let Some(value) = read(name) else {
@@ -77,20 +77,20 @@ pub fn detect(read: impl Fn(&str) -> Option<String>) -> Lang {
         if value.is_empty() {
             continue;
         }
-        // El primero cuyo código coincide con el principio del valor ("pt_BR.UTF-8" -> pt)
+        // The first one whose code matches the start of the value ("pt_BR.UTF-8" -> pt)
         return LANGUAGES.iter().find(|(code, _, _)| value.starts_with(code)).map(|(_, _, lang)| *lang).unwrap_or(Lang::En);
     }
     Lang::En
 }
 
-// Idioma activo. En la app se detecta al primer uso con las variables reales y se vuelve a decidir
-// con `reload` cuando el usuario lo cambia en los ajustes (así cambia sin reiniciar).
+// Active language. In the app it is detected on first use with the real variables and decided again
+// with `reload` when the user changes it in the settings (so it changes without restarting).
 #[cfg(not(test))]
 static ACTIVE: Mutex<Option<Lang>> = Mutex::new(None);
 
-// MANDARINA_LANG es la primera variable que mira detect: si no está en el entorno, ocupa su
-// lugar el idioma guardado en los ajustes, que así manda sobre el idioma del sistema
-// (si MANDARINA_LANG sí está, manda ella y cambiar el idioma en los ajustes no se nota)
+// MANDARINA_LANG is the first variable detect looks at: if it is not in the environment, the language
+// saved in the settings takes its place, so it wins over the system language
+// (if MANDARINA_LANG is set, it wins and changing the language in the settings has no visible effect)
 #[cfg(not(test))]
 fn detect_now() -> Lang {
     detect(|name| std::env::var(name).ok().or_else(|| if name == "MANDARINA_LANG" { crate::config::saved_language() } else { None }))
@@ -102,20 +102,20 @@ pub fn lang() -> Lang {
     *active.get_or_insert_with(detect_now)
 }
 
-// Vuelve a decidir el idioma (tras guardar el de los ajustes). Se calcula antes de tomar el bloqueo.
+// Decides the language again (after saving the one from the settings). It is computed before taking the lock.
 #[cfg(not(test))]
 pub fn reload() {
     let lang = detect_now();
     *ACTIVE.lock().unwrap_or_else(|e| e.into_inner()) = Some(lang);
 }
 
-// En las pruebas el idioma lo fija cada hilo con set_lang: no hay nada que recargar
+// In tests the language is set by each thread with set_lang: there is nothing to reload
 #[cfg(test)]
 pub fn reload() {}
 
-// En las pruebas el idioma es por hilo: cada prueba corre en su propio hilo, así que `set_lang`
-// de una no afecta a las demás aunque corran en paralelo (un Mutex obligaría a serializarlas).
-// Sin `set_lang` el idioma es el inglés, sin mirar el entorno de quien ejecuta las pruebas.
+// In tests the language is per thread: each test runs in its own thread, so `set_lang`
+// in one does not affect the others even if they run in parallel (a Mutex would force them to be serialized).
+// Without `set_lang` the language is English, without looking at the environment of whoever runs the tests.
 #[cfg(test)]
 thread_local! {
     static TEST_LANG: Cell<Lang> = const { Cell::new(Lang::En) };
@@ -126,17 +126,17 @@ pub fn lang() -> Lang {
     TEST_LANG.with(|l| l.get())
 }
 
-// Solo para pruebas: fija el idioma del hilo actual
+// Tests only: sets the language of the current thread
 #[cfg(test)]
 pub fn set_lang(lang: Lang) {
     TEST_LANG.with(|l| l.set(lang));
 }
 
-// ---------- Catálogos ----------
-// Inglés y español van escritos en cada llamada a tr/tr!. Los demás idiomas están en archivos
-// locales/<código>.json: { "texto en inglés": "traducción" }. La clave es el texto en inglés tal cual
-// está en el código, con sus {marcadores}; la traducción lleva los mismos marcadores. Un texto que
-// falta en el catálogo sale en inglés. Para añadir un idioma ver docs/Idiomas.md.
+// ---------- Catalogs ----------
+// English and Spanish are written in each call to tr/tr!. The other languages are in files
+// locales/<code>.json: { "English text": "translation" }. The key is the English text exactly as it
+// is in the code, with its {placeholders}; the translation carries the same placeholders. A text that
+// is missing from the catalog comes out in English. To add a language see docs/Languages.md.
 const CATALOGS: [(Lang, &str); 2] = [
     (Lang::Pt, include_str!("../locales/pt.json")),
     (Lang::Fr, include_str!("../locales/fr.json")),
@@ -154,13 +154,13 @@ pub(crate) fn catalog(lang: Lang) -> &'static HashMap<String, String> {
     }
 }
 
-// Traducción de un texto en inglés a un idioma con catálogo (o el mismo texto si no está)
+// Translation of an English text into a language with a catalog (or the same text if it is not there)
 pub fn translate(lang: Lang, en: &str) -> String {
     catalog(lang).get(en).cloned().unwrap_or_else(|| en.to_string())
 }
 
-// Sustituye los {nombre} de una plantilla por sus valores (los idiomas con catálogo no pueden usar
-// format!, porque su texto no se conoce al compilar)
+// Replaces the {name} placeholders of a template with their values (languages with a catalog cannot use
+// format!, because their text is not known at compile time)
 pub fn fill(template: &str, args: &[(&str, String)]) -> String {
     let mut text = template.to_string();
     for (name, value) in args {
@@ -169,7 +169,7 @@ pub fn fill(template: &str, args: &[(&str, String)]) -> String {
     text
 }
 
-// Elige el texto según el idioma: tr("Cancelled", "Cancelado")
+// Picks the text according to the language: tr("Cancelled", "Cancelado")
 pub fn tr(en: &str, es: &str) -> String {
     match lang() {
         Lang::En => en.to_string(),
@@ -178,8 +178,8 @@ pub fn tr(en: &str, es: &str) -> String {
     }
 }
 
-// Igual que tr pero con formato; los dos textos usan los mismos marcadores y cada valor va con su
-// nombre (los idiomas con catálogo los necesitan para rellenar su traducción):
+// Same as tr but with formatting; the two texts use the same placeholders and each value goes with its
+// name (languages with a catalog need them to fill in their translation):
 // tr!("Cannot convert {name} to {format}", "No se puede convertir {name} a {format}", name = n, format = f)
 #[macro_export]
 macro_rules! tr {
@@ -201,7 +201,7 @@ pub fn get_language() -> String {
 mod tests {
     use super::*;
 
-    // Lector de entorno falso con las variables dadas
+    // Fake environment reader with the given variables
     fn env(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
         let vars: Vec<(String, String)> = vars.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
         move |name| vars.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone())
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(lang("pt"), Lang::Pt);
         assert_eq!(lang("de_DE.UTF-8"), Lang::En);
         assert_eq!(lang("zh_CN.UTF-8"), Lang::En);
-        // Mayúsculas
+        // Uppercase
         assert_eq!(lang("ES_PE"), Lang::Es);
         assert_eq!(lang("Es"), Lang::Es);
     }
@@ -249,7 +249,7 @@ mod tests {
 
     #[test]
     fn el_orden_de_prioridad() {
-        // MANDARINA_LANG gana a todo
+        // MANDARINA_LANG wins over everything
         let all_es = [("LC_ALL", "es"), ("LC_MESSAGES", "es"), ("LANGUAGE", "es"), ("LANG", "es")];
         let mut vars = vec![("MANDARINA_LANG", "en")];
         vars.extend(all_es);
@@ -258,14 +258,14 @@ mod tests {
         let mut vars = vec![("MANDARINA_LANG", "es")];
         vars.extend(all_en);
         assert_eq!(detect(env(&vars)), Lang::Es);
-        // Después LC_ALL, LC_MESSAGES, LANGUAGE y LANG
+        // Then LC_ALL, LC_MESSAGES, LANGUAGE and LANG
         assert_eq!(detect(env(&[("LC_ALL", "en_US"), ("LC_MESSAGES", "es"), ("LANGUAGE", "es"), ("LANG", "es")])), Lang::En);
         assert_eq!(detect(env(&[("LC_MESSAGES", "en_US"), ("LANGUAGE", "es"), ("LANG", "es")])), Lang::En);
         assert_eq!(detect(env(&[("LANGUAGE", "en:es"), ("LANG", "es_PE")])), Lang::En);
         assert_eq!(detect(env(&[("LANGUAGE", "es:en"), ("LANG", "en_US")])), Lang::Es);
-        // Una variable vacía no decide: pasa a la siguiente
+        // An empty variable does not decide: it moves on to the next one
         assert_eq!(detect(env(&[("LC_ALL", ""), ("LANG", "es_PE")])), Lang::Es);
-        // "C" en LC_ALL fuerza el inglés aunque LANG sea español
+        // "C" in LC_ALL forces English even if LANG is Spanish
         assert_eq!(detect(env(&[("LC_ALL", "C"), ("LANG", "es_PE")])), Lang::En);
     }
 
@@ -290,7 +290,7 @@ mod tests {
         assert_eq!(tr!("Value {n}", "Valor {n}", n = n), "Valor 5");
     }
 
-    // Todos los textos en inglés de las llamadas a tr y tr! del código (sin las pruebas)
+    // All the English texts of the calls to tr and tr! in the code (without the tests)
     fn english_texts() -> Vec<String> {
         let mut texts = Vec::new();
         let folder = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
@@ -304,7 +304,7 @@ mod tests {
             let bytes: Vec<char> = code.chars().collect();
             let mut i = 0;
             while i + 3 < bytes.len() {
-                // "tr(" o "tr!(" que no sea el final de otro nombre, seguido de un texto entre comillas
+                // "tr(" or "tr!(" that is not the end of another name, followed by a quoted text
                 let start = if bytes[i] == 't' && bytes[i + 1] == 'r' && (i == 0 || !(bytes[i - 1].is_alphanumeric() || bytes[i - 1] == '_')) {
                     match (bytes[i + 2], bytes[i + 3]) {
                         ('(', _) => Some(i + 3),
@@ -361,7 +361,7 @@ mod tests {
             for text in &texts {
                 assert!(map.contains_key(text), "falta la traducción '{code}' de: {text}");
             }
-            // Y no sobra ninguna: un texto que ya no existe en el código es un resto
+            // And none is left over: a text that no longer exists in the code is a leftover
             for key in map.keys() {
                 assert!(texts.contains(key), "sobra en '{code}' (ya no está en el código): {key}");
             }
@@ -396,7 +396,7 @@ mod tests {
             tr!("Cannot convert {name} to {format}", "No se puede convertir {name} a {format}", name = name, format = format),
             "Impossible de convertir a.png en docx"
         );
-        // Un texto que no está en el catálogo sale en inglés, sin romper nada
+        // A text that is not in the catalog comes out in English, without breaking anything
         assert_eq!(tr("Not in the catalog", "No está en el catálogo"), "Not in the catalog");
         set_lang(Lang::En);
     }

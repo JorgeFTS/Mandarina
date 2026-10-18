@@ -1,18 +1,18 @@
-// Interfaz de la rueda flotante. La geometría está en geometria.js
+// Interface of the floating wheel. The geometry is in geometria.js
 const NS = "http://www.w3.org/2000/svg";
-const TIEMPO_CIERRE = 1000; // cuánto se ve el "Listo" antes de cerrarse
-const TIEMPO_ABANDONO = 4000; // la rueda se cierra sola si no se toca nada en este tiempo
-const MIN_PROGRESO = 2200; // la barra tarda al menos esto en llegar al final, aunque el archivo sea pequeño
+const TIEMPO_CIERRE = 1000; // how long "Done" is shown before closing
+const TIEMPO_ABANDONO = 4000; // the wheel closes by itself if nothing is touched in this time
+const MIN_PROGRESO = 2200; // the bar takes at least this long to reach the end, even if the file is small
 
 const params = new URLSearchParams(window.location.search);
 const tauri = window.__TAURI__;
 
 const demo = !tauri || params.has("demo");
 const t = (clave, variables) => window.I18n.t(clave, variables);
-// Flujo B ("modo libre"): sin archivo inicial; nunca cierra la app, vuelve al círculo
+// Flow B ("free mode"): no initial file; it never closes the app, it goes back to the circle
 let modoLibre = true;
 
-// ---------- Iconos por tipo de archivo ----------
+// ---------- Icons by file type ----------
 
 const ICONOS = {
   imagen: '<rect x="4" y="5" width="16" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M4 17l5-4 4 3 3-2 4 3"/>',
@@ -25,7 +25,7 @@ const ICONOS = {
   pila: '<path d="M9 8h7l4 4v8H9z"/><path d="M16 8v4h4"/><path d="M6 16V5a1 1 0 011-1h7"/>',
 };
 
-// Iconos de las herramientas (mismo viewBox 24x24 que los de tipo)
+// Icons of the tools (same 24x24 viewBox as the type ones)
 const ICONOS_HERR = {
   herramientas: '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
   compress: '<path d="M4 4l6 6M10 5v5H5M20 4l-6 6M14 5v5h5M4 20l6-6M10 19v-5H5M20 20l-6-6M14 19v-5h5"/>',
@@ -68,7 +68,7 @@ function formatearTamano(bytes) {
   return window.I18n.num(bytes / 1024 ** 3, 1) + " GB";
 }
 
-// Los errores del backend traen un código delante: "[cancelled] texto" o "[optimized] texto"
+// Backend errors carry a code in front: "[cancelled] text" or "[optimized] text"
 function conCodigo(mensaje, codigo) {
   return String(mensaje).includes("[" + codigo + "]");
 }
@@ -77,18 +77,18 @@ function sinCodigo(mensaje) {
   return String(mensaje).replace(/^Error: /, "").replace(/\[(cancelled|optimized)\]\s*/, "");
 }
 
-// Idioma de la interfaz: lo decide el backend; en demo, ?lang=es|en (por defecto inglés)
+// Language of the interface: decided by the backend; in demo, ?lang=es|en (English by default)
 async function elegirIdioma() {
   window.I18n.demo = demo;
   await cambiarIdioma();
 }
 
-// Pide el idioma al backend y repinta los textos fijos de la página. También se usa al cambiar el
-// idioma en los ajustes, sin reiniciar.
+// Asks the backend for the language and repaints the fixed texts of the page. It is also used when the
+// language is changed in the settings, without restarting.
 async function cambiarIdioma() {
   let lang = "en";
   try {
-    lang = await api.get_language(); // I18n.init cae en inglés si el código no existe
+    lang = await api.get_language(); // I18n.init falls back to English if the code does not exist
   } catch (e) {}
   window.I18n.init(lang);
   document.documentElement.lang = window.I18n.lang;
@@ -98,7 +98,7 @@ async function cambiarIdioma() {
   $("ajustes").title = t("wheel.settings");
 }
 
-// Etiqueta de una herramienta o de una opción por su id; el label del backend solo es respaldo
+// Label of a tool or an option by its id; the backend label is only a fallback
 function etiqueta(tipo, elemento) {
   const clave = tipo + "." + elemento.id;
   return window.I18n.has(clave) ? t(clave) : elemento.label;
@@ -119,9 +119,9 @@ function esperar(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// ---------- Acceso al backend (o datos falsos en modo demo) ----------
+// ---------- Access to the backend (or fake data in demo mode) ----------
 
-// Miniatura falsa para el modo demo: un degradado naranja
+// Fake thumbnail for demo mode: an orange gradient
 const MINIATURA_DEMO =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -130,14 +130,14 @@ const MINIATURA_DEMO =
       '<rect width="200" height="200" fill="url(#g)"/><circle cx="140" cy="60" r="22" fill="#fff" opacity="0.7"/></svg>'
   );
 
-// Archivos falsos del modo demo con varios archivos
+// Fake files of demo mode with several files
 const FOTOS_DEMO = [1, 2, 3, 4, 5].map((n) => `/demo/foto${n}.png`);
 const TAMANOS_DEMO = [3.1, 1.2, 4.8, 0.9, 2.2];
 const demoVarios = params.get("demo") || "";
 let progresoGlobalDemo = null;
 let archivoDemo = null;
 
-// Conversión falsa de varios archivos: 5 archivos en unos 5 s
+// Fake conversion of several files: 5 files in about 5 s
 async function convertirVariosDemo(rutas) {
   const total = rutas.length;
   for (let i = 1; i <= total; i++) {
@@ -159,24 +159,24 @@ async function convertirVariosDemo(rutas) {
   return resultado;
 }
 
-// Progreso falso para el modo demo: del 0 al 99 % en unos 3 s
+// Fake progress for demo mode: from 0 to 99% in about 3 s
 function progresoDemo(alProgreso) {
   const inicio = Date.now();
   const reloj = setInterval(() => alProgreso(Math.min(99, ((Date.now() - inicio) / 3000) * 100)), 100);
   return () => clearInterval(reloj);
 }
 
-// Archivos y herramientas falsos del modo demo (?demo=...&tipo=imagen|audio|video|pdf)
+// Fake files and tools of demo mode (?demo=...&tipo=imagen|audio|video|pdf)
 const ARCHIVOS_DEMO = {
   imagen: "/demo/foto.jpg",
   audio: "/demo/ejemplo.wav",
   video: "/demo/video.mp4",
   pdf: "/demo/documento.pdf",
 };
-// Idioma y color falsos del modo demo (?accent=blue prueba un color al arrancar)
+// Fake language and color of demo mode (?accent=blue tries a color at startup)
 const PREFS_DEMO = { language: "auto", accent: params.get("accent") || "orange" };
 
-// Configuración falsa del modo demo (misma forma que get_config)
+// Fake settings of demo mode (same shape as get_config)
 const CONFIG_DEMO = [
   ["image", ["jpg", "png", "webp", "tiff", "avif", "bmp", "pdf"]],
   ["audio", ["mp3", "m4a", "wav", "flac", "ogg", "opus", "aiff", "wma"]],
@@ -200,13 +200,13 @@ function extDe(nombre) {
   return nombre.includes(".") ? nombre.split(".").pop().toLowerCase() : "";
 }
 
-// "imagen" | "audio" | "video" | "pdf" | otro, según la extensión
+// "imagen" | "audio" | "video" | "pdf" | other, depending on the extension
 function claseDemo(path) {
   const nombre = nombreDe(path);
   return extDe(nombre) === "pdf" ? "pdf" : tipoDe(nombre, false);
 }
 
-// Los label son neutros (el id): la interfaz traduce por id y solo usa el label como respaldo
+// The labels are neutral (the id): the interface translates by id and only uses the label as a fallback
 function herramientasDemo(path) {
   const clase = claseDemo(path);
   const h = (id, options, editor) => ({ id, label: id, options: options || [], editor: editor || null });
@@ -356,24 +356,24 @@ const api = demo
 let vistaActual = "inicio"; // inicio | rueda | convirtiendo | tarjeta | editor
 let rutas = [];
 let infos = [];
-let textoCentro = ""; // lo que muestra la píldora cuando no hay un segmento activo
+let textoCentro = ""; // what the pill shows when no segment is active
 let formatos = [];
-let herramientas = []; // lo que devuelve get_tools (vacío con varios archivos)
-let segmentos = []; // lo que muestra la rueda ahora: formatos, herramientas u opciones
+let herramientas = []; // what get_tools returns (empty with several files)
+let segmentos = []; // what the wheel shows now: formats, tools or options
 let nivel = "conversion"; // conversion | herramientas | opciones
-let herramienta = null; // la herramienta elegida (para su rueda de opciones)
+let herramienta = null; // the chosen tool (for its options wheel)
 let activo = -1;
 let cancelando = false;
 let soltado = false;
 let cargando = null;
 let temporizador = null;
-let posRueda = null; // dónde estaba el cursor al abrir (para volver ahí tras cancelar)
-let enTransicion = false; // la ventana se está moviendo: no cerrar ni cambiar de vista
-let rearmarAbandono = null; // la pone vigilarAbandono (solo en el flujo A, el de Nautilus)
+let posRueda = null; // where the cursor was when opened (to go back there after cancelling)
+let enTransicion = false; // the window is moving: do not close or change view
+let rearmarAbandono = null; // set by vigilarAbandono (only in flow A, the Nautilus one)
 
 const $ = (id) => document.getElementById(id);
 const vistas = { inicio: $("inicio"), rueda: $("vista-rueda"), tarjeta: $("vista-tarjeta") };
-const LIMITE_ESPERA_HERRAMIENTAS = 400; // ms máximos esperando get_tools antes de pintar la rueda
+const LIMITE_ESPERA_HERRAMIENTAS = 400; // maximum ms waiting for get_tools before painting the wheel
 
 function mostrarVista(nombre, estado) {
   vistaActual = estado || nombre;
@@ -383,7 +383,7 @@ function mostrarVista(nombre, estado) {
 
 // ---------- Salir / volver ----------
 
-// Flujo A: cierra la app. Flujo B: vuelve al círculo de inicio.
+// Flow A: closes the app. Flow B: goes back to the start circle.
 function salir() {
   if (modoLibre) mostrarInicio();
   else api.quit();
@@ -408,7 +408,7 @@ function segmentoFormato(formato) {
   return { accion: "formato", valor: formato, texto: formato.toUpperCase(), aria: t("wheel.convertTo", { format: formato.toUpperCase() }) };
 }
 
-// Una herramienta sin opciones ni editor (p. ej. COMPRIMIR de un pdf) se ejecuta directo
+// A tool with no options or editor (e.g. REDUCE SIZE of a pdf) runs directly
 function esDirecta(h) {
   return h.options.length === 0 && !h.editor;
 }
@@ -418,7 +418,7 @@ function segmentoHerramienta(h) {
   return { accion: "herramienta", valor: h, texto, icono: h.id, herr: true, aria: t("wheel.toolAria", { name: texto.toLowerCase() }) };
 }
 
-// Segmentos de la rueda según el nivel. En la de conversión, HERRAMIENTAS va al final (máximo 8 en total)
+// Segments of the wheel according to the level. In the conversion one, TOOLS goes last (8 in total at most)
 function armarSegmentos() {
   if (nivel === "herramientas") {
     segmentos = herramientas.map((h) => ({ ...segmentoHerramienta(h), herr: false }));
@@ -483,7 +483,7 @@ function dibujarRueda() {
   actualizarPildora();
 }
 
-// Cambia de rueda (conversión, herramientas u opciones) en el mismo componente
+// Changes wheel (conversion, tools or options) in the same component
 function irANivel(nuevo, h) {
   nivel = nuevo;
   if (h) herramienta = h;
@@ -499,7 +499,7 @@ function volverNivel() {
   else if (nivel === "herramientas") irANivel("conversion");
 }
 
-// Sin bloquear: si la miniatura llega a tiempo sustituye al icono; si falla, se queda el icono
+// Without blocking: if the thumbnail arrives in time it replaces the icon; if it fails, the icon stays
 async function cargarMiniatura(lista) {
   try {
     const url = await api.thumbnail(lista[0]);
@@ -516,7 +516,7 @@ async function cargarMiniatura(lista) {
   } catch (e) {}
 }
 
-// Icono del tipo común, o una pila de archivos si no todos son del mismo tipo
+// Icon of the common type, or a stack of files if they are not all of the same type
 function tipoCentro() {
   const tipos = infos.map((i) => tipoDe(i.name, i.is_dir));
   if (tipos.every((t) => t === tipos[0])) return tipos[0];
@@ -543,12 +543,12 @@ function resaltar(i) {
 
 function mostrarRueda() {
   mostrarVista("rueda");
-  // Al volver a la rueda (de los ajustes, del editor o de cancelar) el cierre por inactividad
-  // vuelve a contar; si no, la rueda se quedaba abierta hasta que se moviera el ratón
+  // When going back to the wheel (from the settings, the editor or a cancel) the idle close
+  // starts counting again; otherwise, the wheel stayed open until the mouse moved
   if (rearmarAbandono) rearmarAbandono();
 }
 
-// posición en px CSS de la ventana -> índice de segmento (o -1)
+// position in CSS px of the window -> segment index (or -1)
 function segmentoBajo(x, y) {
   const caja = $("rueda").getBoundingClientRect();
   const escala = 460 / caja.width;
@@ -557,7 +557,7 @@ function segmentoBajo(x, y) {
   return segmentoEn(dx, dy, segmentos.length);
 }
 
-// distancia al centro de la rueda, en unidades del viewBox
+// distance to the center of the wheel, in viewBox units
 function distanciaAlCentro(x, y) {
   const caja = $("rueda").getBoundingClientRect();
   const escala = 460 / caja.width;
@@ -619,7 +619,7 @@ function mostrarError(mensaje, titulo) {
   tarjeta.setAttribute("role", "alert");
 }
 
-// Nombre que tendrá la salida con un nombre personalizado: el del usuario + la extensión del original
+// Name the output will have with a custom name: the user's one + the extension of the original
 function nombreConExtension(nombre, original) {
   const ext = extDe(original);
   nombre = nombre.trim();
@@ -639,12 +639,12 @@ function mostrarProgreso(textoTitulo) {
   return { relleno: barra.firstChild, titulo, detalle };
 }
 
-// La barra tiene dos modos:
-// - Progreso real (ffmpeg y los lotes): empieza en 0 y sigue solo los eventos del backend. Si en
-//   3 s no llega ninguno (por ejemplo, ffprobe no pudo leer la duración), pasa a la simulada.
-// - Simulada (imágenes, documentos...): sube rápido y se frena cerca del 92 %; no mide nada real.
-// La barra nunca retrocede. Al terminar la conversión se rellena hasta el 100 % poco a poco, en
-// el tiempo que falte hasta MIN_PROGRESO, para que no salte.
+// The bar has two modes:
+// - Real progress (ffmpeg and batches): it starts at 0 and follows only the backend events. If
+// none arrives in 3 s (for example, ffprobe could not read the duration), it switches to the simulated one.
+// - Simulated (images, documents...): it rises fast and slows near 92%; it measures nothing real.
+// The bar never goes backwards. When the conversion ends it fills up to 100% little by little, in
+// the time left until MIN_PROGRESO, so that it does not jump.
 function animarBarra(relleno, titulo, base, mostrarPorcentaje, progresoReal) {
   let ancho = 0;
   let real = 0;
@@ -689,12 +689,12 @@ function animarBarra(relleno, titulo, base, mostrarPorcentaje, progresoReal) {
       relleno.style.transitionDuration = milisegundos + "ms";
       ancho = 100;
       relleno.style.width = "100%";
-      await esperar(milisegundos + 200); // que se vea llena un instante antes de pasar a "Listo"
+      await esperar(milisegundos + 200); // so that it is seen full for a moment before moving to "Done"
     },
   };
 }
 
-// ¿El backend informa del avance real? Sí con ffmpeg (audio, vídeo, subtítulos) y con lotes
+// Does the backend report real progress? Yes with ffmpeg (audio, video, subtitles) and with batches
 function conProgresoReal() {
   if (rutas.length > 1) return true;
   const nombre = infos[0].name;
@@ -726,15 +726,15 @@ function mostrarListo(detalle) {
   arrancar();
 }
 
-// Sin una llamada extra al backend: una salida sin extensión se considera carpeta
+// Without an extra call to the backend: an output with no extension is considered a folder
 function salidaEsCarpeta(salida) {
   return !nombreDe(salida).includes(".");
 }
 
-// ---------- Conversión ----------
+// ---------- Conversion ----------
 
-// Mueve la ventana (con el escenario oculto un instante) y luego muestra la vista pedida.
-// destino: "centro" para los mensajes, "cursor" para volver a la rueda donde se abrió.
+// Moves the window (with the stage hidden for a moment) and then shows the requested view.
+// destination: "centro" for messages, "cursor" to go back to the wheel where it was opened.
 async function moverYMostrar(destino, mostrar) {
   const mover = !modoLibre && !demo && posRueda;
   if (!mover) return mostrar();
@@ -761,7 +761,7 @@ function cancelar_() {
   api.cancel();
 }
 
-// Resultado de convert_many: todo bien, fallo parcial o todo fallado
+// Result of convert_many: all good, partial failure or all failed
 function mostrarResultadoVarios(resultado, formato) {
   const { outputs, skipped, failed } = resultado;
   if (failed.length === 0) {
@@ -782,7 +782,7 @@ async function convertir(i) {
   const formato = segmentos[i].valor;
   const varios = rutas.length > 1;
   cancelando = false;
-  // Los mensajes (progreso, resultado, errores) van en el centro de la pantalla
+  // The messages (progress, result, errors) go in the center of the screen
   const { relleno, titulo, detalle } = await moverYMostrar("centro", () => mostrarProgreso(t("progress.converting", { format: formato.toUpperCase() })));
   const barra = animarBarra(relleno, titulo, t("progress.converting", { format: formato.toUpperCase() }), !varios, conProgresoReal());
   const inicio = Date.now();
@@ -796,13 +796,13 @@ async function convertir(i) {
     detalle.textContent = e.name;
   };
   try {
-    // Los listeners se registran antes de convertir para no perder el primer evento
+    // The listeners are registered before converting so the first event is not lost
     escuchas.push(await api.on_progress(barra.progreso).catch(() => null));
     if (varios) escuchas.push(await api.on_file(alArchivo).catch(() => null));
     escuchas = escuchas.filter(Boolean);
     const salida = varios ? await api.convert_many(rutas, formato) : await api.convert(rutas[0], formato);
     dejarDeEscuchar();
-    // Si terminó enseguida, la barra se rellena poco a poco hasta cumplir MIN_PROGRESO
+    // If it ended right away, the bar fills little by little until MIN_PROGRESO is met
     await barra.completar(Math.max(450, MIN_PROGRESO - (Date.now() - inicio)));
     if (varios) mostrarResultadoVarios(salida, formato);
     else mostrarListo(textoSalida(salida));
@@ -817,7 +817,7 @@ async function convertir(i) {
 
 // ---------- Herramientas ----------
 
-// Qué hace al elegir un segmento, según la rueda en que esté
+// What it does when a segment is chosen, depending on the wheel it is on
 function elegir(i) {
   if (vistaActual !== "rueda" || enTransicion) return;
   const seg = segmentos[i];
@@ -829,18 +829,18 @@ function elegir(i) {
   else ejecutarHerramienta(seg.valor, null, null);
 }
 
-// Las herramientas de audio y vídeo usan ffmpeg y dan el progreso real
+// The audio and video tools use ffmpeg and give real progress
 function herramientaConProgresoReal() {
   const tipo = tipoDe(infos[0].name, infos[0].is_dir);
   return tipo === "audio" || tipo === "video";
 }
 
-// Cancelar una herramienta vuelve a la rueda en la que se abrió, en el sitio del cursor
+// Cancelling a tool goes back to the wheel it was opened from, at the cursor's place
 function volverTrasCancelarHerramienta() {
   moverYMostrar("cursor", mostrarRueda);
 }
 
-// yaCentrada: viene del editor, que ya dejó la ventana en el centro
+// yaCentrada: it comes from the editor, which already left the window in the center
 async function ejecutarHerramienta(tool, opcion, parametros, yaCentrada) {
   cancelando = false;
   const base = t(window.I18n.has("progress." + tool.id) ? "progress." + tool.id : "progress.processing");
@@ -904,9 +904,9 @@ async function abrirEditor(tool) {
   } catch (e) {
     resultado = null;
   }
-  await esperar(80); // que termine el clic de Aplicar/Cancelar antes de cambiar de vista
+  await esperar(80); // so that the click on Apply/Cancel finishes before the view changes
 
-  // Se cierra el editor y se devuelve la ventana a su tamaño de rueda (460x460)
+  // The editor is closed and the window goes back to its wheel size (460x460)
   enTransicion = true;
   $("vista-editor").hidden = true;
   contenedor.replaceChildren();
@@ -928,7 +928,7 @@ async function abrirEditor(tool) {
   }
 }
 
-// ---------- Ajustes (formatos de la rueda) ----------
+// ---------- Settings (formats of the wheel) ----------
 
 async function abrirAjustes() {
   if (vistaActual !== "rueda" || enTransicion || nivel !== "conversion") return;
@@ -955,11 +955,11 @@ async function abrirAjustes() {
       cambio = await window.Ajustes.abrir({ contenedor, api: f, alCambiarIdioma: cambiarIdioma });
     }
   } catch (e) {
-    // Si la pantalla de ajustes falla, la rueda sigue como estaba
+    // If the settings screen fails, the wheel stays as it was
   }
   await esperar(80);
 
-  // Se cierra la pantalla y la ventana vuelve a su tamaño de rueda (460x460)
+  // The screen is closed and the window goes back to its wheel size (460x460)
   enTransicion = true;
   $("vista-ajustes").hidden = true;
   contenedor.replaceChildren();
@@ -969,7 +969,7 @@ async function abrirAjustes() {
   if (!modoLibre && posRueda) await api.place_wheel(posRueda.x, posRueda.y);
   else await api.center_wheel();
   if (cambio) {
-    // La rueda se arma otra vez con los formatos nuevos
+    // The wheel is built again with the new formats
     try {
       const lista = await api.get_targets_many(rutas);
       if (lista.length > 0) {
@@ -978,11 +978,11 @@ async function abrirAjustes() {
         dibujarRueda();
       }
     } catch (e) {
-      // Se queda la lista de formatos que ya había
+      // The list of formats that was already there stays
     }
   }
   if (cambio) {
-    // Por si cambió el idioma: el texto del centro y las etiquetas de la rueda se vuelven a pintar
+    // In case the language changed: the center text and the labels of the wheel are painted again
     textoCentro = textoDeCentro();
     dibujarRueda();
     actualizarPildora();
@@ -993,9 +993,9 @@ async function abrirAjustes() {
   escenario.classList.remove("oculto");
 }
 
-// ---------- Cargar un archivo ----------
+// ---------- Loading a file ----------
 
-// Lo que muestra la píldora del centro: el tamaño, o "N archivos · tamaño" (depende del idioma)
+// What the center pill shows: the size, or "N files · size" (it depends on the language)
 function textoDeCentro() {
   const total = infos.reduce((suma, i) => suma + i.size, 0);
   return rutas.length === 1 ? formatearTamano(total) : t("wheel.centerMany", { count: rutas.length, size: formatearTamano(total) });
@@ -1007,12 +1007,12 @@ async function cargarArchivos(nuevas) {
   nivel = "conversion";
   const inicio = Date.now();
   try {
-    // Con varios archivos, si uno falla solo se ignora su tamaño
+    // With several files, if one fails only its size is ignored
     const pedirInfos =
       nuevas.length === 1
         ? Promise.all([api.file_info(nuevas[0])])
         : Promise.all(nuevas.map((r) => api.file_info(r).catch(() => ({ name: nombreDe(r), size: 0, is_dir: false }))));
-    // Las herramientas solo con un archivo; se piden a la vez, pero sin esperar más de 400 ms
+    // The tools only with one file; they are requested at the same time, but without waiting more than 400 ms
     const pedirHerramientas = nuevas.length === 1 ? api.get_tools(nuevas[0]).catch(() => []) : Promise.resolve([]);
     const [datos, lista] = await Promise.all([pedirInfos, api.get_targets_many(nuevas)]);
     const sinHerramientas = esperar(Math.max(0, LIMITE_ESPERA_HERRAMIENTAS - (Date.now() - inicio))).then(() => []);
@@ -1048,14 +1048,14 @@ function mismasRutas(a, b) {
 function alMoverRaton(e) {
   if (vistaActual !== "rueda") return;
   resaltar(segmentoBajo(e.clientX, e.clientY));
-  // El engranaje de ajustes solo se ve con el ratón sobre el círculo central
+  // The settings gear is only visible with the mouse over the center circle
   $("ajustes").classList.toggle("visible", distanciaAlCentro(e.clientX, e.clientY) < R_INT);
 }
 
 function alHacerClic(e) {
-  // Los clics del editor (Aplicar, Cancelar...) no son de la rueda: sin esto, el clic de Aplicar
-  // llegaba aquí con la vista ya cambiada, caía "fuera de la rueda" y cerraba la app
-  // El engranaje tiene su propio manejador; con el teclado su clic llega con coordenadas 0,0 y pasaría por "fuera de la rueda"
+  // The clicks of the editor (Apply, Cancel...) are not the wheel's: without this, the click on Apply
+  // arrived here with the view already changed, fell "outside the wheel" and closed the app
+  // The gear has its own handler; with the keyboard its click arrives with coordinates 0,0 and would pass as "outside the wheel"
   if (e.target.closest && e.target.closest("#vista-editor, #vista-ajustes, #ajustes")) return;
   if (vistaActual === "rueda") {
     const i = segmentoBajo(e.clientX, e.clientY);
@@ -1097,11 +1097,11 @@ async function alArrastrar(evento) {
   }
 }
 
-// Pide mostrar la ventana. Con un archivo, la ventana empieza a pantalla completa y transparente
-// solo para enterarse de dónde está el cursor (la app no puede saberlo en Wayland, pero la página
-// recibe el cursor en cuanto la ventana aparece debajo de él); luego place_wheel la encoge a
-// 460x460 en ese punto y la rueda queda centrada en ella.
-// No se usa requestAnimationFrame: con la ventana oculta WebKit no lo dispara.
+// Asks to show the window. With a file, the window starts full screen and transparent
+// only to find out where the cursor is (the app cannot know it on Wayland, but the page
+// receives the cursor as soon as the window appears under it); then place_wheel shrinks it to
+// 460x460 at that point and the wheel ends up centered in it.
+// requestAnimationFrame is not used: with the window hidden WebKit does not fire it.
 async function mostrarVentana() {
   const escenario = $("escenario");
   const sobreCursor = !modoLibre && !demo;
@@ -1109,19 +1109,19 @@ async function mostrarVentana() {
   await esperar(60);
   await api.show_wheel();
   if (sobreCursor && vistaActual === "tarjeta") {
-    // Un mensaje desde el principio (p. ej. "Formato no soportado") va en el centro
+    // A message from the start (e.g. "Unsupported format") goes in the center
     await api.center_wheel();
     await esperar(150);
   } else if (sobreCursor) {
     posRueda = await esperarCursor();
     await api.place_wheel(posRueda.x, posRueda.y);
-    await esperar(150); // que la página se adapte al nuevo tamaño antes de mostrar la rueda
+    await esperar(150); // so that the page adapts to the new size before showing the wheel
   }
   escenario.classList.remove("oculto");
   if (sobreCursor) vigilarAbandono();
 }
 
-// Espera el primer evento del cursor (máximo 600 ms). Si no llega ninguno, usa el centro de la pantalla.
+// Waits for the first cursor event (600 ms at most). If none arrives, it uses the center of the screen.
 function esperarCursor() {
   const eventos = ["mousemove", "mouseover", "pointermove"];
   return new Promise((resolver) => {
@@ -1136,24 +1136,24 @@ function esperarCursor() {
   });
 }
 
-// La ventana ya no cubre la pantalla, así que un clic fuera no la cierra: se cierra al perder el
-// foco o tras 4 s sin tocar nada (solo mientras está la rueda abierta; no mientras convierte).
+// The window no longer covers the screen, so a click outside does not close it: it closes when losing
+// focus or after 4 s of no activity (only while the wheel is open; not while it converts).
 function vigilarAbandono() {
   let reloj;
   const reiniciar = () => {
     clearTimeout(reloj);
-    // Se vuelve a comprobar al disparar: si mientras tanto empezó una conversión, no se cierra
+    // It is checked again when it fires: if a conversion started in the meantime, it does not close
     if (vistaActual === "rueda") reloj = setTimeout(() => vistaActual === "rueda" && !enTransicion && salir(), TIEMPO_ABANDONO);
   };
   document.addEventListener("mousemove", reiniciar);
   document.addEventListener("keydown", reiniciar);
   rearmarAbandono = reiniciar;
   reiniciar();
-  // Se activa un poco después: al cambiar de tamaño la ventana puede perder el foco un instante
+  // It is armed a little later: when the window changes size it may lose focus for a moment
   setTimeout(() => window.addEventListener("blur", () => vistaActual === "rueda" && !enTransicion && salir()), 1000);
 }
 
-// Pinta la app con el color elegido en los ajustes; si falla se queda el naranja de siempre
+// Paints the app with the color chosen in the settings; if it fails the usual orange stays
 async function aplicarAcentoGuardado() {
   try {
     const prefs = await api.get_prefs();
@@ -1170,7 +1170,7 @@ async function iniciar() {
   document.addEventListener("keydown", alPulsarTecla);
   $("rueda").addEventListener("mouseleave", () => {
     if (vistaActual === "rueda") resaltar(-1);
-    $("ajustes").classList.remove("visible"); // sin mousemove al salir, el engranaje se quedaba visible
+    $("ajustes").classList.remove("visible"); // without mousemove when leaving, the gear stayed visible
   });
 
   if (!demo) tauri.webview.getCurrentWebview().onDragDropEvent(alArrastrar);
@@ -1185,15 +1185,15 @@ async function iniciar() {
       if (demo) await estadoDemo(params.get("demo"));
     }
   } finally {
-    // Siempre se muestra la ventana: si algo falla antes, quedaría invisible
+    // The window is always shown: if something fails earlier, it would stay invisible
     mostrarVentana();
   }
 }
 
-// En demo, "?demo=rueda|convirtiendo|listo|error|aviso" salta a esa vista.
-// Con varios archivos: variosrueda | varios | variossaltados | variosfallo | variosnocomun
+// In demo, "?demo=rueda|convirtiendo|listo|error|aviso" jumps to that view.
+// With several files: variosrueda | varios | variossaltados | variosfallo | variosnocomun
 // Herramientas: herramientas | opciones | editorimagen | editoraudio | editorvideo | herramientaejecutando
-// (con &tipo=imagen|audio|video|pdf para elegir el archivo de la demo)
+// (with &tipo=imagen|audio|video|pdf to choose the demo file)
 async function estadoDemo(estado) {
   if (!estado) return;
   const varios = estado.startsWith("varios");

@@ -1,20 +1,20 @@
-// Editor visual de recorte: recuadro sobre una imagen, o inicio y fin en tiempo para audio y vídeo.
+// Visual trim editor: a box over an image, or start and end in time for audio and video.
 // Uso: window.Editor.abrir({ tipo, ruta, nombre, contenedor, api }) -> Promise<params | null>
-// Va dentro de una función para no chocar con los nombres de main.js.
+// It lives inside a function so it does not clash with the names in main.js.
 (function () {
-  const MIN_HUECO = 0.1; // segundos mínimos entre inicio y fin
-  const MIN_LADO = 4; // píxeles mínimos del recuadro
+  const MIN_HUECO = 0.1; // minimum seconds between start and end
+  const MIN_LADO = 4; // minimum pixels of the box
   const PROPORCIONES = [[null, 0], ["1:1", 1], ["4:3", 4 / 3], ["16:9", 16 / 9], ["3:2", 3 / 2]];
   const TIRADORES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
   const FOTOGRAMAS = 10;
   const PARALELO = 3;
   const MAX_NOMBRE = 200;
 
-  // En el navegador I18n lo carga index.html; en Node (pruebas) se carga el archivo
+  // In the browser index.html loads I18n; in Node (tests) the file is loaded
   const I18n = typeof window !== "undefined" && window.I18n ? window.I18n : require("./i18n.js");
   const tr = (clave, variables) => I18n.t(clave, variables);
 
-  // ---------- Parte pura (se prueba con Node) ----------
+  // ---------- Pure part (tested with Node) ----------
 
   function limitar(v, min, max) {
     return Math.min(Math.max(v, min), max);
@@ -32,7 +32,7 @@
     return `${m}:${dosDigitos(s)}.${dosDigitos(cs % 100)}`;
   }
 
-  // Acepta "1:23.45", "83.4", "83,4" o "1:02:03". Devuelve segundos o null
+  // Accepts "1:23.45", "83.4", "83,4" or "1:02:03". Returns seconds or null
   function parsearTiempo(texto) {
     const partes = String(texto).trim().replace(",", ".").split(":");
     if (partes.length > 3) return null;
@@ -48,7 +48,7 @@
     return Math.round(n * 100) / 100;
   }
 
-  // Mueve un extremo ("start" o "end") sin cruzar el otro
+  // Moves one end ("start" or "end") without crossing the other
   function moverExtremo(sel, cual, t, dur) {
     const hueco = Math.min(MIN_HUECO, dur);
     const valor = redondear2(t);
@@ -87,7 +87,7 @@
     return enteros && r.x >= 0 && r.y >= 0 && r.w >= 1 && r.h >= 1 && r.x + r.w <= img.w && r.y + r.h <= img.h;
   }
 
-  // Coordenadas de pantalla -> píxeles reales de la imagen (pueden salir de la imagen)
+  // Screen coordinates -> real pixels of the image (they may fall outside the image)
   function pantallaAPixeles(clientX, clientY, caja, img) {
     return {
       x: ((clientX - caja.left) / caja.width) * img.w,
@@ -95,7 +95,7 @@
     };
   }
 
-  // Bordes (decimales) -> recuadro entero dentro de la imagen
+  // Edges (decimals) -> whole-number box inside the image
   function desdeBordes(izq, arr, der, aba, img) {
     const x = limitar(Math.round(izq), 0, img.w - 1);
     const y = limitar(Math.round(arr), 0, img.h - 1);
@@ -113,7 +113,7 @@
     };
   }
 
-  // Fuerza la proporción sobre los bordes ya movidos, anclando el lado o la esquina opuestos
+  // Forces the aspect ratio on the edges that were already moved, anchoring the opposite side or corner
   function forzarProporcion(b, r, t, img, ratio) {
     const oeste = t.includes("w");
     const norte = t.includes("n");
@@ -145,7 +145,7 @@
     return { izq: oeste ? ax - w2 : ax, der: oeste ? ax : ax + w2, arr: norte ? ay - h2 : ay, aba: norte ? ay : ay + h2 };
   }
 
-  // t: "n", "s", "e", "w", "ne", "nw", "se" o "sw". dx y dy en píxeles reales desde el recuadro inicial r
+  // t: "n", "s", "e", "w", "ne", "nw", "se" or "sw". dx and dy in real pixels from the initial box r
   function redimensionarRecuadro(r, t, dx, dy, img, ratio) {
     const min = Math.min(MIN_LADO, img.w, img.h);
     let b = { izq: r.x, arr: r.y, der: r.x + r.w, aba: r.y + r.h };
@@ -157,7 +157,7 @@
     return desdeBordes(b.izq, b.arr, b.der, b.aba, img);
   }
 
-  // Recuadro de la proporción pedida, centrado en el actual y sin salirse de él
+  // Box with the requested aspect ratio, centered on the current one and not going outside it
   function ajustarProporcion(r, ratio, img) {
     if (!ratio) return r;
     const w = r.w / r.h > ratio ? r.h * ratio : r.w;
@@ -167,7 +167,7 @@
     return desdeBordes(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2, img);
   }
 
-  // Aplica lo que se escribió en un campo ("x", "y", "w" o "h"). Devuelve el nuevo recuadro o null
+  // Applies what was typed in a field ("x", "y", "w" or "h"). Returns the new box or null
   function aplicarCampo(r, campo, texto, img) {
     if (!/^\s*\d+([.,]\d+)?\s*$/.test(String(texto))) return null;
     const n = Math.round(Number(String(texto).replace(",", ".")));
@@ -186,7 +186,7 @@
     return nuevo;
   }
 
-  // "foto.v2.png" -> ".png"; sin extensión (o nombre oculto como ".bashrc") -> ""
+  // "photo.v2.png" -> ".png"; with no extension (or a hidden name like ".bashrc") -> ""
   function extensionDe(archivo) {
     const texto = String(archivo || "");
     const punto = texto.lastIndexOf(".");
@@ -204,7 +204,7 @@
     return tr("editor.name.initial", { name: sinExtension(archivo) || tr("editor.name.fallback") });
   }
 
-  // Devuelve el mensaje de error del nombre escrito, o "" si es válido. Escribir la extensión del original no es error
+  // Returns the error message for the typed name, or "" if it is valid. Typing the extension of the original is not an error
   function validarNombre(texto) {
     const nombre = String(texto).trim();
     if (nombre === "") return tr("editor.name.empty");
@@ -214,7 +214,7 @@
     return "";
   }
 
-  // ---------- Ayudas de DOM ----------
+  // ---------- DOM helpers ----------
 
   function el(etiqueta, clase, texto) {
     const nodo = document.createElement(etiqueta);
@@ -233,7 +233,7 @@
     try {
       nodo.setPointerCapture(evento.pointerId);
     } catch (e) {
-      // sin captura el arrastre sigue funcionando mientras el puntero esté encima
+      // without capture the drag keeps working while the pointer is over it
     }
   }
 
@@ -254,7 +254,7 @@
     ctx.estadoAplicar(false, "");
   }
 
-  // ---------- Marco: título, botones y teclado ----------
+  // ---------- Frame: title, buttons and keyboard ----------
 
   let contadorNombres = 0;
 
@@ -282,7 +282,7 @@
     aplicar.disabled = true;
     botones.append(aviso, cancelar, aplicar);
 
-    // Nombre del archivo nuevo: texto editable y, a la derecha, la extensión del original
+    // Name of the new file: an editable text and, on the right, the extension of the original
     const idNombre = `ed-nombre-${++contadorNombres}`;
     const grupoNombre = el("div", "ed-grupo ed-nombre");
     const etiquetaNombre = el("label", "ed-etiqueta", tr("editor.name.label"));
@@ -308,7 +308,7 @@
     ctx.raiz = raiz;
     ctx.cuerpo = cuerpo;
 
-    // Aplicar solo se activa si la selección y el nombre son válidos; cada uno muestra su propio mensaje
+    // Apply is only enabled if the selection and the name are valid; each one shows its own message
     ctx.seleccionOk = false;
     ctx.nombreOk = true;
     const refrescarAplicar = () => {
@@ -336,7 +336,7 @@
     };
     revisarNombre();
     entradaNombre.addEventListener("input", revisarNombre);
-    // Al entrar con clic o Tab se selecciona todo el texto (el clic no debe deshacer la selección)
+    // When entering with a click or Tab the whole text is selected (the click must not undo the selection)
     let recienEnfocado = false;
     entradaNombre.addEventListener("focus", () => {
       recienEnfocado = true;
@@ -427,7 +427,7 @@
 
     const estado = { r: recuadroCompleto(img), ratio: 0 };
 
-    // Escena con la imagen y el recuadro
+    // Scene with the image and the box
     const escena = el("div", "ed-escena");
     const lienzo = el("div", "ed-lienzo");
     if (url) {
@@ -464,7 +464,7 @@
     lienzo.append(caja);
     escena.append(lienzo);
 
-    // Panel: proporciones, campos y medida
+    // Panel: aspect ratios, fields and measurements
     const panel = el("div", "ed-panel");
     const grupoProp = el("div", "ed-grupo");
     const segmentos = el("div", "ed-segmentos");
@@ -527,7 +527,7 @@
       dibujar();
     }
 
-    // Ratón y táctil
+    // Mouse and touch
     function empezarArrastre(e, t) {
       if (e.button !== undefined && e.button > 0) return;
       e.preventDefault();
@@ -554,7 +554,7 @@
       nodo.addEventListener("pointercancel", soltar);
     }
 
-    // Teclado: flechas 1 px, con Mayús 10 px
+    // Keyboard: arrows 1 px, with Shift 10 px
     function alTeclear(e, t) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const paso = e.shiftKey ? 10 : 1;
@@ -573,7 +573,7 @@
       tiradores[t].addEventListener("keydown", (e) => alTeclear(e, t));
     }
 
-    // Campos numéricos
+    // Numeric fields
     function confirmarCampo(clave) {
       const nuevo = aplicarCampo(estado.r, clave, campos[clave].entrada.value, img);
       if (!nuevo) {
@@ -593,7 +593,7 @@
       campos[clave].entrada.addEventListener("focus", (e) => e.target.select());
     }
 
-    // El lienzo se ajusta al área disponible, sin deformar la imagen
+    // The canvas fits the available area, without distorting the image
     function ajustarLienzo() {
       const estilo = getComputedStyle(escena);
       const ancho = escena.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight) - 24;
@@ -616,9 +616,9 @@
     caja.focus();
   }
 
-  // ---------- Modo tiempo (audio y vídeo) ----------
+  // ---------- Time mode (audio and video) ----------
 
-  // Pista con los dos extremos arrastrables. Devuelve el nodo y la función que los coloca
+  // Track with the two draggable ends. Returns the node and the function that places them
   function crearPista(sel, dur, alMover) {
     const zona = el("div", "ed-pistazona");
     const pista = el("div", "ed-pista");
@@ -663,7 +663,7 @@
       }
     }
 
-    // Ratón y táctil: sobre un extremo lo arrastra; en otro punto, mueve el más cercano
+    // Mouse and touch: over an end it drags it; on any other point, it moves the nearest one
     pista.addEventListener("pointerdown", (e) => {
       if (e.button !== undefined && e.button > 0) return;
       e.preventDefault();
@@ -693,7 +693,7 @@
       pista.addEventListener("pointercancel", soltar);
     });
 
-    // Teclado: flechas 0.1 s (1 s con Mayús), Inicio y Fin saltan al límite
+    // Keyboard: arrows 0.1 s (1 s with Shift), Home and End jump to the limit
     for (const cual in extremos) {
       extremos[cual].addEventListener("keydown", (e) => {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -749,7 +749,7 @@
     }
   }
 
-  // Carga los fotogramas de la tira, con un máximo de PARALELO peticiones a la vez
+  // Loads the frames of the strip, with at most PARALELO requests at a time
   function cargarTira(ctx, celdas, tiempos) {
     let siguiente = 0;
     let activas = 0;
@@ -810,7 +810,7 @@
       if (esVideo) pedirVista(sel[cual]);
     });
 
-    // Campos de tiempo
+    // Time fields
     const panel = el("div", "ed-panel");
     const campoIni = crearCampoTiempo(tr("editor.time.start"));
     const campoFin = crearCampoTiempo(tr("editor.time.end"));
@@ -831,7 +831,7 @@
     regla.append(el("span", "", "0:00.00"), el("span", "", formatearTiempo(dur / 2)), el("span", "", formatearTiempo(dur)));
     pista.zona.append(regla);
 
-    // Vista previa grande (vídeo)
+    // Large preview (video)
     let vista = null;
     let vistaImg = null;
     let vistaSello = null;
@@ -908,7 +908,7 @@
       campo.entrada.addEventListener("focus", (e) => e.target.select());
     }
 
-    // Fondo de la pista
+    // Background of the track
     if (esVideo) {
       pista.pista.classList.add("ed-tira");
       const tira = el("div", "ed-fotogramas");
@@ -942,7 +942,7 @@
     pista.zona.querySelector(".ed-extremo").focus();
   }
 
-  // Pide la forma de onda y la dibuja; si falla, deja una barra de tiempo simple
+  // Requests the waveform and draws it; if it fails, it leaves a simple time bar
   function cargarOnda(ctx, pista, sel, dur, alListo) {
     Promise.resolve()
       .then(() => ctx.api.waveform(ctx.ruta, 300))
@@ -980,7 +980,7 @@
       if (op.tipo === "imagen") iniciarImagen(ctx);
       else if (op.tipo === "audio" || op.tipo === "video") iniciarTiempo(ctx, op.tipo);
       else mostrarError(ctx, tr("editor.invalidType"), op.tipo);
-      window.Editor.ultimo = ctx; // solo para pruebas
+      window.Editor.ultimo = ctx; // only for tests
     });
   }
 

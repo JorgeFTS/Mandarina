@@ -1,8 +1,8 @@
-// Pantalla de ajustes: qué formatos muestra la rueda de cada tipo de archivo.
-// Uso: window.Ajustes.abrir({ contenedor, api }) -> Promise<boolean> (true si cambió algo)
-// api: get_config, set_formats, reset_formats, get_prefs, set_language, set_accent. Cada cambio se guarda
-// y se aplica al momento; alCambiarIdioma (opcional) la pone main.js para repintar la página al cambiar de idioma.
-// Va dentro de una función para no chocar con los nombres de main.js.
+// Settings screen: which formats the wheel shows for each type of file.
+// Usage: window.Ajustes.abrir({ contenedor, api }) -> Promise<boolean> (true if something changed)
+// api: get_config, set_formats, reset_formats, get_prefs, set_language, set_accent. Each change is saved
+// and applied immediately; alCambiarIdioma (optional) is set by main.js to repaint the page when the language changes.
+// It lives inside a function so it does not clash with the names in main.js.
 (function () {
   const tr = (clave, variables) => window.I18n.t(clave, variables);
 
@@ -13,20 +13,20 @@
     return e;
   }
 
-  // Lista nueva tras marcar o desmarcar un formato: se respeta el orden de los que ya estaban
-  // y el nuevo va al final
+  // New list after checking or unchecking a format: the order of those already there is kept
+  // and the new one goes at the end
   function conCambio(activos, formato, marcado) {
     if (!marcado) return activos.filter((f) => f !== formato);
     return activos.includes(formato) ? activos : [...activos, formato];
   }
 
-  // ¿Se puede cambiar este formato sin salirse de los límites? Con más de `max` de serie
-  // (audio, vídeo y documento traen 8) siempre se puede quitar uno
+  // Can this format be changed without going outside the limits? With more than `max` by default
+  // (audio, video and document have 8) one can always be removed
   function puedeCambiar(activos, formato, min, max) {
     return activos.includes(formato) ? activos.length > min : activos.length < max;
   }
 
-  // Colores de acento: id (el mismo que valida el backend) -> tono normal y tono claro (hover)
+  // Accent colors: id (the same one the backend validates) -> normal tone and light tone (hover)
   const ACENTOS = {
     orange: ["#f26a1b", "#ff8a3d"],
     red: ["#e5383b", "#ff6b6b"],
@@ -36,7 +36,7 @@
     green: ["#2e9e5b", "#55c47f"],
   };
 
-  // Pinta toda la app con ese color (las hojas de estilo usan --naranja y --naranja-claro)
+  // Paints the whole app with that color (the stylesheets use --naranja and --naranja-claro)
   function aplicarAcento(id) {
     const [normal, claro] = ACENTOS[id] || ACENTOS.orange;
     const raiz = document.documentElement.style;
@@ -148,15 +148,15 @@
         aviso.classList.remove("ed-aviso-error");
       }
 
-      // Los textos fijos de esta pantalla (el resto se vuelve a crear en dibujar)
+      // The fixed texts of this screen (the rest is created again in dibujar)
       function pintarTextosFijos() {
         titulo.textContent = tr("settings.title");
         cerrarBoton.textContent = tr("settings.close");
         raiz.setAttribute("aria-label", tr("settings.title"));
       }
 
-      // Idioma: se guarda y se aplica al momento; alCambiarIdioma repinta la página y esta pantalla
-      // se vuelve a dibujar ya en el idioma nuevo
+      // Language: it is saved and applied immediately; alCambiarIdioma repaints the page and this screen
+      // is drawn again already in the new language
       async function elegirIdioma(valor) {
         try {
           await api.set_language(valor);
@@ -189,7 +189,7 @@
         const opciones = el("div", "aj-fichas");
         opciones.setAttribute("role", "radiogroup");
         opciones.setAttribute("aria-label", tr("settings.language"));
-        // "Automático" y un botón por idioma (el nombre de cada uno, en su propio idioma, lo da el backend)
+        // "Automatic" and one button per language (the name of each one, in its own language, comes from the backend)
         const idiomas = [{ code: "auto", name: tr("settings.language.auto") }, ...prefs.languages];
         for (const { code: valor, name: nombreIdioma } of idiomas) {
           const ficha = el("label", "aj-ficha" + (prefs.language === valor ? " aj-activa" : ""));

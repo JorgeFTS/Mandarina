@@ -9,31 +9,31 @@ use std::time::{Duration, Instant};
 const IMAGE_EXT: [&str; 11] = ["jpg", "jpeg", "png", "webp", "heic", "heif", "tiff", "tif", "avif", "bmp", "gif"];
 const VIDEO_EXT: [&str; 6] = ["mp4", "mov", "mkv", "webm", "avi", "wmv"];
 
-// Lado máximo de la miniatura y tiempo máximo de espera
+// Maximum side of the thumbnail and maximum wait time
 const SIZE: &str = "200";
 const MAX_WAIT: Duration = Duration::from_secs(3);
 
 const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-// Mensajes de error de las miniaturas
+// Error messages of the thumbnails
 fn no_thumbnail() -> String {
     tr("No thumbnail", "Sin miniatura")
 }
 
-// tools.rs lo compara para distinguir "tardó demasiado" de los demás fallos
+// tools.rs compares it to tell "it took too long" apart from the other failures
 pub(crate) fn timeout_message() -> String {
     tr("The thumbnail took too long", "La miniatura tardó demasiado")
 }
 
-// Base64 estándar (RFC 4648) con relleno "="
+// Standard Base64 (RFC 4648) with "=" padding
 pub(crate) fn base64(bytes: &[u8]) -> String {
     let mut text = String::new();
     for chunk in bytes.chunks(3) {
-        // Se juntan hasta 3 bytes en un número de 24 bits y se sacan 4 grupos de 6 bits
+        // Up to 3 bytes are gathered into a 24-bit number and 4 groups of 6 bits are taken out
         let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
         let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
         for i in 0..4 {
-            // Con 1 byte hay 2 letras útiles y con 2 bytes hay 3: el resto es relleno
+            // With 1 byte there are 2 useful letters and with 2 bytes there are 3: the rest is padding
             if i <= chunk.len() {
                 text.push(TABLE[((n >> (18 - 6 * i)) & 63) as usize] as char);
             } else {
@@ -44,10 +44,10 @@ pub(crate) fn base64(bytes: &[u8]) -> String {
     text
 }
 
-// Ejecuta el programa y deja que `read` procese su stdout (en un hilo, para que el proceso no se bloquee
-// al llenarse la tubería). Devuelve lo que devuelva `read` si el programa termina bien. Si pasa `deadline`,
-// mata el proceso (y sus hijos) y devuelve Err. No usa CANCEL ni run_in: una miniatura (o la vista previa
-// o la forma de onda de las herramientas) nunca cancela ni se cancela con la conversión.
+// Runs the program and lets `read` process its stdout (in a thread, so the process does not block
+// when the pipe fills up). Returns whatever `read` returns if the program ends well. If `deadline` is passed,
+// it kills the process (and its children) and returns Err. It uses neither CANCEL nor run_in: a thumbnail (or the preview
+// or the waveform of the tools) never cancels, and is never cancelled by, the conversion.
 pub(crate) fn capture_with<T: Send + 'static>(
     program: &str,
     args: &[&str],
@@ -85,7 +85,7 @@ pub(crate) fn capture_with<T: Send + 'static>(
     }
 }
 
-// Igual, pero devolviendo el stdout entero (puede venir vacío; lo comprueba quien llama)
+// Same, but returning the whole stdout (it may come back empty; the caller checks it)
 pub(crate) fn capture(program: &str, args: &[&str], deadline: Instant) -> Result<Vec<u8>, String> {
     capture_with(program, args, deadline, |mut stream| {
         let mut bytes = Vec::new();
@@ -94,11 +94,11 @@ pub(crate) fn capture(program: &str, args: &[&str], deadline: Instant) -> Result
     })
 }
 
-// Miniatura JPEG de una imagen con ImageMagick.
-// La ruta es absoluta, así que nunca empieza por "-". El "[0]" del final es la selección de
-// fotograma (solo el primero, para GIF animados); ImageMagick prueba antes el nombre literal,
-// por lo que un archivo con corchetes, ":" o "*" ("a[1].png") se abre bien. No se usa el prefijo
-// "file:" porque con él ImageMagick falla con estos nombres (probado).
+// JPEG thumbnail of an image with ImageMagick.
+// The path is absolute, so it never starts with "-". The trailing "[0]" is the frame
+// selection (only the first one, for animated GIFs); ImageMagick tries the literal name first,
+// so a file with brackets, ":" or "*" ("a[1].png") opens fine. The "file:" prefix is not used
+// because with it ImageMagick fails with these names (tested).
 fn image_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     if !tool_exists("magick") {
         return Err(no_thumbnail());
@@ -108,19 +108,19 @@ fn image_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     capture("magick", &[&first_frame, "-auto-orient", "-thumbnail", &size, "jpg:-"], deadline)
 }
 
-// SVG: rsvg-convert a un PNG pequeño en una carpeta temporal y luego ImageMagick a JPEG
+// SVG: rsvg-convert to a small PNG in a temporary folder and then ImageMagick to JPEG
 fn svg_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     if !tool_exists("rsvg-convert") {
         return Err(no_thumbnail());
     }
     let tmp = TempDir::new()?;
     let png = tmp.path().join("mini.png").to_string_lossy().to_string();
-    // Ni -w ni -h pueden pasar de 200; -a mantiene la proporción
+    // Neither -w nor -h may exceed 200; -a keeps the aspect ratio
     capture("rsvg-convert", &["-a", "-w", SIZE, "-h", SIZE, "-o", &png, "--", path], deadline)?;
     image_thumb(&png, deadline)
 }
 
-// Vídeo: un fotograma en el segundo 1 y, si el vídeo es más corto, el primero
+// Video: one frame at second 1 and, if the video is shorter, the first one
 fn video_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     if !tool_exists("ffmpeg") {
         return Err(no_thumbnail());
@@ -141,7 +141,7 @@ fn video_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     capture("ffmpeg", &from_start, deadline)
 }
 
-// PDF: primera página con pdftoppm. Sin nombre de salida escribe la imagen en stdout.
+// PDF: first page with pdftoppm. With no output name it writes the image to stdout.
 fn pdf_thumb(path: &str, deadline: Instant) -> Result<Vec<u8>, String> {
     if !tool_exists("pdftoppm") {
         return Err(no_thumbnail());
@@ -185,7 +185,7 @@ pub async fn thumbnail(path: String) -> Result<String, String> {
 mod tests {
     use super::*;
 
-    // Carpeta temporal propia de cada prueba
+    // Temporary folder of each test
     fn test_dir(name: &str) -> std::path::PathBuf {
         let dir = std::env::temp_dir().join(format!("mandarina_th_{}_{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
@@ -198,7 +198,7 @@ mod tests {
         assert!(status.success(), "{program} falló");
     }
 
-    // Decodifica el data URL y comprueba que sea un JPEG
+    // Decodes the data URL and checks that it is a JPEG
     fn assert_jpeg(url: &str) {
         let data = url.strip_prefix("data:image/jpeg;base64,").expect("no es un data URL");
         assert!(data.starts_with("/9j/"), "no empieza como un JPEG");
@@ -213,7 +213,7 @@ mod tests {
         assert_eq!(base64(b"foob"), "Zm9vYg==");
         assert_eq!(base64(b"fooba"), "Zm9vYmE=");
         assert_eq!(base64(b"foobar"), "Zm9vYmFy");
-        // Bytes altos: 0xFF 0xD8 0xFF es el inicio de un JPEG
+        // High bytes: 0xFF 0xD8 0xFF is the start of a JPEG
         assert_eq!(base64(&[0xFF, 0xD8, 0xFF]), "/9j/");
     }
 
@@ -223,7 +223,7 @@ mod tests {
         let txt = dir.join("a.txt");
         std::fs::write(&txt, "hola").unwrap();
         assert_eq!(thumbnail_blocking(txt.to_str().unwrap()), Err("No thumbnail".to_string()));
-        // Ni una carpeta ni un archivo que no existe
+        // Neither a folder nor a file that does not exist
         assert_eq!(thumbnail_blocking(dir.to_str().unwrap()), Err("No thumbnail".to_string()));
         assert_eq!(thumbnail_blocking("/no/existe.png"), Err("No thumbnail".to_string()));
         std::fs::remove_dir_all(&dir).unwrap();
@@ -241,11 +241,11 @@ mod tests {
             let url = thumbnail_blocking(png.to_str().unwrap()).unwrap_or_else(|e| panic!("{name}: {e}"));
             assert_jpeg(&url);
         }
-        // GIF animado: solo el primer fotograma, y la miniatura es un único JPEG
+        // Animated GIF: only the first frame, and the thumbnail is a single JPEG
         let gif = dir.join("anim.gif");
         run("magick", &["-size", "300x300", "xc:red", "-size", "300x300", "xc:blue", "-delay", "5", gif.to_str().unwrap()]);
         assert_jpeg(&thumbnail_blocking(gif.to_str().unwrap()).unwrap());
-        // No se escribe nada junto al original
+        // Nothing is written next to the original
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 8);
         std::fs::remove_dir_all(&dir).unwrap();
     }
@@ -268,7 +268,7 @@ mod tests {
             assert_jpeg(&thumbnail_blocking(pdf.to_str().unwrap()).unwrap());
         }
         if tool_exists("ffmpeg") {
-            // Uno de 3 s (fotograma en el segundo 1) y otro de medio segundo (primer fotograma)
+            // One of 3 s (frame at second 1) and another of half a second (first frame)
             for (name, secs) in [("largo.mp4", "3"), ("corto.mp4", "0.5")] {
                 let video = dir.join(name);
                 let args = ["-nostdin", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=10", "-t", secs, "-pix_fmt", "yuv420p", video.to_str().unwrap()];
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn se_corta_si_tarda_demasiado() {
-        // sh lanza un "sleep" nieto: también debe morir
+        // sh launches a grandchild "sleep": it must die too
         let start = Instant::now();
         let result = capture("sh", &["-c", "sleep 31.78; true"], Instant::now() + Duration::from_millis(300));
         assert!(result.is_err());

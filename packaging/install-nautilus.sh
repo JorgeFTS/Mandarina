@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Installs the Nautilus script into ~/.local/share/nautilus/scripts/ / Instala el script de Nautilus.
+# Installs the Nautilus script into ~/.local/share/nautilus/scripts/
 # Usage / Uso: packaging/install-nautilus.sh [path/to/mandarina]
-# Idempotent: it can be run many times / Se puede ejecutar varias veces.
-# Language (same rule as the app, see docs/Idiomas.md): MANDARINA_LANG, the language saved in the
+# Idempotent: it can be run many times.
+# Language (same rule as the app, see docs/Languages.md): MANDARINA_LANG, the language saved in the
 # app settings (~/.config/mandarina/config.json), LC_ALL, LC_MESSAGES, first item of LANGUAGE, LANG.
 # Starts with "es", "pt" or "fr" -> that language; anything else -> English.
 # To add a language: one more line in LANGS and in script_name, plus the app files (see CONTRIBUTING.md).
