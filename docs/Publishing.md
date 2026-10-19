@@ -25,7 +25,7 @@ Rebuilt on 2026-10-18 with the current code (languages, settings and `assets/` i
 | `npm run tauri build -- --bundles deb` | OK, 1 min 07 s. `Mandarina_0.1.0_amd64.deb` of 2.4 MB (2.57 MiB, package name `mandarina`, with the current code). |
 | Release binary startup (`medir.sh`) | 1st cold run ~2.9 s until the wheel is ready; next ones ~0.9 to 1.1 s. Full-screen window at ~0.5 s. |
 
-The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/mandarina` (6.5 MB), the Nautilus installer in `usr/share/mandarina/` (`install-nautilus.sh` and `nautilus/mandarina-script`, configured in `bundle.linux.deb.files` of `tauri.conf.json`; the installer finds the installed program by itself when it is not inside a repository), `usr/share/applications/Mandarina.desktop` (category Utility, `Exec=mandarina`) and hicolor icons (32, 128 and 256@2). It **does not install** the Nautilus script or the shortcut by itself: the user runs `bash /usr/share/mandarina/install-nautilus.sh` (a post-install script would touch the `~/.local` of every user and is not done). A post-install script could be added, but it would touch the `~/.local` of every user and it is not done.
+The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/mandarina` (6.5 MB), the Nautilus installer in `usr/share/mandarina/` (`install-nautilus.sh` and `nautilus/mandarina-script`, configured in `bundle.linux.deb.files` of `tauri.conf.json`; the installer finds the installed program by itself when it is not inside a repository), `usr/share/applications/Mandarina.desktop` (category Utility, `Exec=mandarina`) and hicolor icons (32, 128 and 256@2). It **does not install** the Nautilus script or the shortcut by itself: the user runs `bash /usr/share/mandarina/install-nautilus.sh` (a post-install script would touch the `~/.local` of every user and is not done).
 
 ### Dependencies
 
@@ -36,9 +36,17 @@ Configured in `tauri.conf.json` (`bundle.linux.deb`):
 
 `targets` is `["deb"]` (with `"all"` rpm and AppImage are also attempted, untested).
 
+### Release
+
+The release `v0.1.0-beta` exists as a private **draft** on GitHub with the `.deb` and `SHA256SUMS` (rebuilt after each fix with `gh release upload v0.1.0-beta --clobber`); it is not published yet. When it is, add the "install from the release" steps to the READMEs.
+
+### Other distributions
+
+The `.deb` only serves Debian, Ubuntu and derivatives. Planned, in this order: a `PKGBUILD` for Arch, CachyOS and Manjaro (with `sudo pacman -S` in the missing-tool messages), then an AppImage, which also covers Fedora and openSUSE. Dolphin, Nemo and Thunar integration is left until someone asks. Nothing of this is done.
+
 ## Untested
 
-- Installing the `.deb` on a clean system (it was not installed on this machine) and running the app from the applications menu.
+- Running the app from the applications menu of a real desktop (the `.deb` was installed on a real Ubuntu one and tried in clean containers, see below).
 - AppImage, rpm, Flatpak and Snap.
 - The `.desktop` launches the app without arguments (drag mode), without `GDK_BACKEND=x11`; on Wayland it may not be placed next to the cursor.
 - There are `dead_code` warnings when compiling, coming from Rust code under development.

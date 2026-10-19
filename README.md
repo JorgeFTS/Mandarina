@@ -30,7 +30,7 @@ Select one or more files in Nautilus, press a shortcut or right-click, and a whe
   <a href="docs/media/mandarina-demo.mp4">Watch it with sound (MP4)</a> · <a href="docs/media/mandarina-demo.webm">WebM (Opus)</a>
 </p>
 
-> **Status: early prototype (version 0.1.0).** It works, but it has only been tried on Ubuntu with GNOME 50. Read [Project status](#project-status) before relying on it.
+> **Status: beta (version 0.1.0).** It works, and the `.deb` was tried in clean Debian and Ubuntu systems, but the app itself has only been used on a real desktop with Ubuntu and GNOME. Read [Project status](#project-status) before relying on it.
 
 ## Contents
 
@@ -47,7 +47,7 @@ Select one or more files in Nautilus, press a shortcut or right-click, and a whe
 
 ## Installation
 
-Mandarina is not packaged for any distribution yet, so for now you build it from source. It was tested on Ubuntu with GNOME 50; other distributions should work with the equivalent packages, but that has not been checked.
+The only package is a `.deb` for Debian, Ubuntu and derivatives (see [Optional: build a `.deb` package](#optional-build-a-deb-package)). On other distributions (Arch, CachyOS, Fedora...) you build it from source with the equivalent packages; that should work, but it has not been checked, and packages for them are planned. The steps below use the Debian and Ubuntu package names.
 
 ### 1. Install the conversion tools
 
@@ -185,14 +185,16 @@ The language applies to the interface, error messages, the names of the files th
 Works and tested:
 
 - The Rust converters and tools: `cargo test` runs unit tests plus integration tests with ffmpeg, ImageMagick, pandoc, poppler, LibreOffice and ghostscript (integration tests are skipped if the tool is missing).
-- By hand: md to pdf/png, docx to pdf, doc to md/pdf, pptx to pdf/jpg, tsv to xlsx/csv, pdf to docx/md/epub/txt.
+- By hand: md to pdf/png/docx (including Markdown tables with long separator lines, whose columns get widths that follow their content), docx to pdf, doc to md/pdf, pptx to pdf/jpg, tsv to xlsx/csv, pdf to docx/md/epub/txt, and mp4 to webm (about 1.8 times faster than the first version, same quality). A PDF to Word conversion of a CV with a colored banner keeps the text visible over it (checked in LibreOffice, not in Word).
+- The `.deb`: installed, started, used to convert a photo, and removed in clean containers of Ubuntu 22.04, 24.04 and 26.04 and Debian 12 and 13, and installed on a real Ubuntu desktop.
 
 Not verified or pending:
 
 - The wheel in the real window: placement next to the cursor, on-screen transparency, real drag and drop, and cancel. Design screenshots only test the interface, not Tauri. A checklist for trying it is in [docs/Manual-Testing.md](docs/Manual-Testing.md).
 - Untested: rar, zip extraction with 7z only, SVG, video to GIF, the "missing tool" messages, and real .xls, .ods and .odp files.
-- Only tested on Ubuntu with GNOME 50 (Wayland). No tests on pure X11, other distributions or other desktop environments.
-- The `.deb` package builds (2.6 MB, with the current code) but has not been installed or tested on a clean system. It does not install the Nautilus script.
+- Only used on a real desktop with Ubuntu and GNOME 50 (Wayland). No tests on pure X11, on other distributions (the `.deb` does not install on Arch, Fedora or similar) or on other desktop environments.
+- The `.deb` (2.6 MB) does not install the Nautilus script by itself; you run `bash /usr/share/mandarina/install-nautilus.sh`.
+- A Markdown file shows its images only if they are next to it (a missing `assets/` folder means no images in the result, and the app does not warn about it yet).
 - Pending: file-action wheels, audio/video playback inside the trim editor, and tools for several files or for documents.
 
 ## Contributing
