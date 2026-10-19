@@ -146,6 +146,16 @@ Con **un solo archivo**, el último segmento de la rueda es **HERRAMIENTAS** y a
 | PDF | reducir tamaño |
 | Cualquier otro archivo | zip |
 
+<p align="center">
+  <img src="docs/images/tools-wheel.png" alt="La rueda de herramientas: reducir tamaño, quitar metadatos, recortar, girar, voltear, redimensionar y comprimir en ZIP" width="340">
+</p>
+
+<p align="center">
+  <img src="docs/images/tool-crop-image.png" alt="El editor de imagen: recorte con una caja visual, proporciones y el tamaño del resultado" width="420">
+  &nbsp;
+  <img src="docs/images/tool-trim-video.png" alt="El editor de vídeo: una tira de fotogramas con dos asas para recortar y la duración que se conserva" width="420">
+</p>
+
 El resultado va junto al original, con el mismo formato y un sufijo: `foto (comprimido).jpg`, y del mismo modo `(sin metadatos)`, `(recortado)`, `(girado)`, `(volteado)`, `(redimensionado)` y `(sin audio)`. Si comprimir no reduce al menos un 2 %, avisa en vez de crear un archivo casi igual. Wav, flac, aiff y bmp no ofrecen reducir tamaño. Reducir tamaño no es zipear: la herramienta ZIP empaqueta cualquier archivo en un `.zip`.
 
 Los editores de recorte (imagen, audio y vídeo) incluyen un campo con el nombre del archivo nuevo. Empieza como `foto (recortado)`, junto a él se muestra la extensión del original y se valida mientras escribes. Comprimir un PDF necesita ghostscript. Más detalles en [docs/Tools.md](docs/Tools.md) (en inglés).

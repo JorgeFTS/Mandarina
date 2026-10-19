@@ -146,6 +146,16 @@ With **a single file**, the last wheel segment is **TOOLS** and opens a second w
 | PDF | reduce size |
 | Any other file | zip |
 
+<p align="center">
+  <img src="docs/images/tools-wheel.png" alt="The tools wheel: reduce size, strip metadata, trim, rotate, flip, resize and zip" width="340">
+</p>
+
+<p align="center">
+  <img src="docs/images/tool-crop-image.png" alt="The image editor: crop with a visual box, aspect ratios and the size of the result" width="420">
+  &nbsp;
+  <img src="docs/images/tool-trim-video.png" alt="The video editor: a frame strip with two handles to trim, and the duration that is kept" width="420">
+</p>
+
 The result goes next to the original, in the same format and with a suffix: `photo (compressed).jpg`, and likewise `(no metadata)`, `(trimmed)`, `(rotated)`, `(flipped)`, `(resized)` and `(no audio)`. If compressing does not save at least 2 %, the app says so instead of creating a nearly identical file. Wav, flac, aiff and bmp do not offer Reduce size. Reduce size is not zipping: the ZIP tool packs any file into a `.zip`.
 
 The trim editors (image, audio and video) include a field for the name of the new file. It starts as `photo (trimmed)`, the original extension is shown next to it, and it is checked as you type. Compressing a PDF needs ghostscript. More details in [docs/Tools.md](docs/Tools.md).
