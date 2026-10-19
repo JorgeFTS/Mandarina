@@ -26,10 +26,6 @@ Seleccionas uno o varios archivos en Nautilus, pulsas un atajo o haces clic dere
   <img src="docs/images/mandarina-demo.gif" alt="Demostración: seleccionar un archivo en Nautilus, pulsar Alt+M, elegir un formato en la rueda y ver el archivo convertido junto al original" width="720">
 </p>
 
-<p align="center">
-  <a href="docs/media/mandarina-demo.mp4">Verlo con sonido (MP4)</a> · <a href="docs/media/mandarina-demo.webm">WebM (Opus)</a>
-</p>
-
 > **Estado: beta (versión 0.1.0).** Funciona y el `.deb` se probó en sistemas limpios de Debian y Ubuntu, pero la app solo se ha usado en un escritorio real con Ubuntu y GNOME. Lee [Estado del proyecto](#estado-del-proyecto) antes de usarlo.
 
 ## Contenido

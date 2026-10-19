@@ -26,10 +26,6 @@ Select one or more files in Nautilus, press a shortcut or right-click, and a whe
   <img src="docs/images/mandarina-demo.gif" alt="Demo: select a file in Nautilus, press Alt+M, pick a format on the wheel, and the converted file appears next to the original" width="720">
 </p>
 
-<p align="center">
-  <a href="docs/media/mandarina-demo.mp4">Watch it with sound (MP4)</a> · <a href="docs/media/mandarina-demo.webm">WebM (Opus)</a>
-</p>
-
 > **Status: beta (version 0.1.0).** It works, and the `.deb` was tried in clean Debian and Ubuntu systems, but the app itself has only been used on a real desktop with Ubuntu and GNOME. Read [Project status](#project-status) before relying on it.
 
 ## Contents

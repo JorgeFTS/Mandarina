@@ -13,5 +13,4 @@ Map of the notes. Open the `docs/` folder as a vault in Obsidian to see the grap
 - [[Settings]]: the formats shown by the wheel, language and accent color, chosen by the user.
 - [[Languages]]: English by default plus Spanish, Portuguese and French; how it is chosen and what is translated.
 - [[Manual-Testing]]: checklist to try the app in the real window before publishing.
-- [[Promo-Video]]: how the demo video of the README is generated from the real interface.
 - [[Publishing]]: packaging, the .deb and what is left before a release.
