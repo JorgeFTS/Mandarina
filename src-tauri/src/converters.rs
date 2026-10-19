@@ -449,6 +449,30 @@ fn convert_svg(src: &str, out: &str) -> Result<(), String> {
     result
 }
 
+// ffmpeg arguments (without the program) for a conversion. The only options beyond the defaults are
+// the ones that change the result or the speed of a target:
+// - gif: fewer frames per second and a small size;
+// - audio targets: -vn drops the picture (and the cover art);
+// - webm: with its defaults VP9 is very slow (a 3-minute 2560x1600 video took 7.5 minutes);
+//   "-deadline good -cpu-used 4 -row-mt 1" is about 1.8 times faster with the same size and almost the
+//   same quality (53.2 dB against 52.6 dB of PSNR measured on 20 s of that video).
+fn ffmpeg_convert_args(src: &str, out: &str, target: &str, real_progress: bool) -> Vec<String> {
+    let mut args: Vec<&str> = vec!["-nostdin", "-n"];
+    if real_progress {
+        args.extend(["-progress", "pipe:1", "-nostats"]);
+    }
+    args.extend(["-i", src]);
+    if target == "gif" {
+        args.extend(["-vf", "fps=12,scale=480:-1:flags=lanczos"]);
+    } else if target == "webm" {
+        args.extend(["-c:v", "libvpx-vp9", "-deadline", "good", "-cpu-used", "4", "-row-mt", "1"]);
+    } else if AUDIO_TARGETS.contains(&target) {
+        args.push("-vn");
+    }
+    args.push(out);
+    args.into_iter().map(String::from).collect()
+}
+
 fn convert_ffmpeg(src: &str, out: &str, target: &str, progress: Option<Progress>) -> Result<(), String> {
     need(&["ffmpeg"], "sudo apt install ffmpeg")?;
     // There is only real progress if someone is listening and the duration is known
@@ -456,17 +480,8 @@ fn convert_ffmpeg(src: &str, out: &str, target: &str, progress: Option<Progress>
         Some(callback) => probe_duration(src).map(|total| (total, callback)),
         None => None,
     };
-    let mut args = vec!["-nostdin", "-n"];
-    if progress.is_some() {
-        args.extend(["-progress", "pipe:1", "-nostats"]);
-    }
-    args.extend(["-i", src]);
-    if target == "gif" {
-        args.extend(["-vf", "fps=12,scale=480:-1:flags=lanczos"]);
-    } else if AUDIO_TARGETS.contains(&target) {
-        args.push("-vn");
-    }
-    args.push(out);
+    let args = ffmpeg_convert_args(src, out, target, progress.is_some());
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
     run_progress("ffmpeg", &args, None, progress)
 }
 
@@ -607,6 +622,62 @@ fn finish_pdf(pdf: &Path, out: &Path, target: &str) -> Result<(), String> {
     }
 }
 
+// The filled shapes of a PDF (colored banners, backgrounds of a table) come out of LibreOffice only as
+// old VML shapes, with no stacking order. Word and LibreOffice paint them above the text boxes, which
+// hides what goes on them: the white name on a colored banner of a CV disappeared. A very negative
+// z-index sends them behind the text. Only the shapes with a fill are touched.
+const BEHIND_TEXT: &str = "z-index:-251658240;";
+
+fn send_shapes_behind(xml: &str) -> String {
+    let mut out = String::with_capacity(xml.len() + 256);
+    let mut rest = xml;
+    while let Some(start) = rest.find("<v:shape ") {
+        out.push_str(&rest[..start]);
+        let tag_and_rest = &rest[start..];
+        let Some(end) = tag_and_rest.find('>') else {
+            // A tag that never closes: the rest is left as it is
+            out.push_str(tag_and_rest);
+            return out;
+        };
+        let tag = &tag_and_rest[..=end];
+        match tag.find("style=\"") {
+            Some(i) if tag.contains("fillcolor=") && !tag.contains("z-index") => {
+                let at = i + "style=\"".len();
+                out.push_str(&tag[..at]);
+                out.push_str(BEHIND_TEXT);
+                out.push_str(&tag[at..]);
+            }
+            _ => out.push_str(tag),
+        }
+        rest = &tag_and_rest[end + 1..];
+    }
+    out.push_str(rest);
+    out
+}
+
+// Applies send_shapes_behind to the document.xml of a docx made from a PDF. It is best effort: without
+// unzip and zip, or if anything fails, the docx is left as LibreOffice made it.
+fn send_pdf_shapes_behind(docx: &Path, tmp: &Path) {
+    if !tool_exists("unzip") || !tool_exists("zip") {
+        return;
+    }
+    let Ok(output) = Command::new("unzip").args(["-p", &st(docx), "word/document.xml"]).stderr(Stdio::null()).output() else {
+        return;
+    };
+    let Ok(xml) = String::from_utf8(output.stdout) else {
+        return;
+    };
+    let fixed = send_shapes_behind(&xml);
+    if fixed == xml {
+        return;
+    }
+    let work = tmp.join("shapes");
+    if std::fs::create_dir_all(work.join("word")).is_err() || std::fs::write(work.join("word/document.xml"), fixed).is_err() {
+        return;
+    }
+    let _ = run_in("zip", &["-q", &st(docx), "word/document.xml"], Some(&work));
+}
+
 fn convert_pdf(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let tmp = TempDir::new()?;
     match target {
@@ -617,6 +688,7 @@ fn convert_pdf(src: &Path, out: &Path, target: &str) -> Result<(), String> {
         "jpg" | "png" => pdf_to_images(src, out, target),
         "docx" => {
             let docx = libreoffice(src, tmp.path(), "docx:MS Word 2007 XML", Some("writer_pdf_import"))?;
+            send_pdf_shapes_behind(&docx, tmp.path());
             move_file(&docx, out)
         }
         // epub and md: first to DOCX with LibreOffice and then pandoc
@@ -1867,6 +1939,81 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         let result = convert_blocking(&path, &format);
         println!("RESULTADO {format}: {:?} en {:.1}s", result, start.elapsed().as_secs_f32());
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn ffmpeg_args_por_destino() {
+        let args = |target: &str, progress: bool| ffmpeg_convert_args("in.mp4", "out.x", target, progress);
+        // webm: the fast VP9 options go before the output file
+        let webm = args("webm", false);
+        let text = webm.join(" ");
+        assert!(text.contains("-c:v libvpx-vp9 -deadline good -cpu-used 4 -row-mt 1"), "{text}");
+        assert_eq!(webm.last().unwrap(), "out.x");
+        assert!(webm.iter().position(|a| a == "-i").unwrap() < webm.iter().position(|a| a == "-c:v").unwrap());
+        // the other video targets keep the plain conversion
+        for target in ["mp4", "mov", "mkv", "avi", "wmv"] {
+            assert_eq!(args(target, false), ["-nostdin", "-n", "-i", "in.mp4", "out.x"], "{target}");
+        }
+        // gif and audio keep their own options
+        assert!(args("gif", false).join(" ").contains("fps=12,scale=480"));
+        assert!(args("mp3", false).contains(&"-vn".to_string()));
+        assert!(!args("webm", false).contains(&"-vn".to_string()));
+        // real progress comes before the input
+        let with = args("webm", true);
+        assert!(with.join(" ").starts_with("-nostdin -n -progress pipe:1 -nostats -i in.mp4"));
+    }
+
+    #[test]
+    fn envia_al_fondo_las_formas_vml_con_relleno() {
+        let xml = "<w:p><w:pict><v:shape id=\"a\" fillcolor=\"#5c2d91\" stroked=\"f\" style=\"position:absolute;margin-left:54pt\" path=\"m0,0\"><v:fill/></v:shape></w:pict>\
+                   <w:pict><v:shape id=\"b\" style=\"position:absolute;margin-left:1pt\"><v:textbox/></v:shape></w:pict>\
+                   <w:pict><v:shape id=\"c\" fillcolor=\"#fff\" style=\"z-index:5;position:absolute\"/></w:pict>texto</w:p>";
+        let fixed = send_shapes_behind(xml);
+        // The filled shape without order goes behind; the one with no fill and the one that already has a z-index do not change
+        assert!(fixed.contains("fillcolor=\"#5c2d91\" stroked=\"f\" style=\"z-index:-251658240;position:absolute;margin-left:54pt\""), "{fixed}");
+        assert!(fixed.contains("<v:shape id=\"b\" style=\"position:absolute;margin-left:1pt\">"));
+        assert!(fixed.contains("style=\"z-index:5;position:absolute\""));
+        assert_eq!(fixed.matches("z-index:-251658240").count(), 1);
+        assert!(fixed.ends_with("texto</w:p>"));
+        // Nothing to change: the same text; and an unterminated tag does not lose or repeat text
+        assert_eq!(send_shapes_behind("<w:p>sin formas</w:p>"), "<w:p>sin formas</w:p>");
+        assert_eq!(send_shapes_behind("<w:p><v:shape fillcolor=\"x\""), "<w:p><v:shape fillcolor=\"x\"");
+    }
+
+    #[test]
+    fn pdf_a_docx_deja_visible_el_texto_sobre_una_banda_de_color() {
+        let _g = lock();
+        if !tool_exists("gs") || !tool_exists("magick") || !tool_exists("unzip") || !tool_exists("zip") || !(tool_exists("soffice") || tool_exists("libreoffice")) {
+            return;
+        }
+        let dir = test_dir("pdf_banda");
+        // A PDF with a purple banner and white text on it, made with ghostscript
+        let ps = "0.36 0.18 0.57 setrgbcolor 40 640 520 90 rectfill 1 setgray /Helvetica-Bold findfont 34 scalefont setfont 60 675 moveto (WHITE ON BANNER) show 0 setgray /Helvetica findfont 14 scalefont setfont 60 560 moveto (Normal text below the banner) show showpage";
+        std::fs::write(dir.join("banda.ps"), ps).unwrap();
+        run("gs", &["-q", "-dNOPAUSE", "-dBATCH", "-sDEVICE=pdfwrite", &format!("-sOutputFile={}", st(&dir.join("banda.pdf"))), &st(&dir.join("banda.ps"))]).unwrap();
+        let docx = convert_blocking(&st(&dir.join("banda.pdf")), "docx").unwrap();
+        let xml = String::from_utf8_lossy(&std::process::Command::new("unzip").args(["-p", docx.as_str(), "word/document.xml"]).output().unwrap().stdout).to_string();
+        assert!(xml.contains("z-index:-251658240"), "the banner must go behind the text");
+        // Rendered, the banner is not an empty color block: there are white pixels (the text) inside it
+        run("soffice", &["-env:UserInstallation=file:///tmp/mandarina_banda_profile", "--headless", "--convert-to", "pdf", "--outdir", &st(&dir.join("render")), &docx]).ok();
+        let rendered = dir.join("render/banda.pdf");
+        if rendered.exists() {
+            run("gs", &["-q", "-dNOPAUSE", "-dBATCH", "-sDEVICE=png16m", "-r50", "-dFirstPage=1", "-dLastPage=1", &format!("-sOutputFile={}", st(&dir.join("pagina.png"))), &st(&rendered)]).unwrap();
+            // The banner is at the top of the page: look at the band between 6% and 14% of the height
+            let output = std::process::Command::new("magick")
+                .args([&st(&dir.join("pagina.png")), "-gravity", "North", "-crop", "100%x9%+0+55", "+repage", "-colorspace", "gray", "-threshold", "85%", "-format", "%[fx:mean]", "info:"])
+                .output()
+                .unwrap();
+            let white: f64 = String::from_utf8_lossy(&output.stdout).trim().parse().unwrap_or(1.0);
+            assert!(white < 0.97, "the band should have dark pixels (the banner), mean {white}");
+            let output = std::process::Command::new("magick")
+                .args([&st(&dir.join("pagina.png")), "-gravity", "North", "-crop", "70%x6%+0+60", "+repage", "-colorspace", "gray", "-threshold", "85%", "-format", "%[fx:mean]", "info:"])
+                .output()
+                .unwrap();
+            let inner: f64 = String::from_utf8_lossy(&output.stdout).trim().parse().unwrap_or(0.0);
+            assert!(inner > 0.0, "white text pixels must be visible inside the banner");
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
