@@ -90,10 +90,11 @@ El instalador copia un script a `~/.local/share/nautilus/scripts/` y añade el a
 ```bash
 npm run tauri build -- --bundles deb
 sudo apt install ./src-tauri/target/release/bundle/deb/Mandarina_0.1.0_amd64.deb
-packaging/install-nautilus.sh /usr/bin/mandarina
+bash /usr/share/mandarina/install-nautilus.sh
+nautilus -q
 ```
 
-El paquete es experimental: no se ha probado en un sistema limpio y no instala el script de Nautilus (es el último comando). Las herramientas de conversión van como paquetes recomendados, así que `apt` las instala por ti.
+El paquete se instaló y probó en contenedores limpios de Ubuntu 22.04, 24.04 y 26.04 y Debian 12 y 13 (ver [docs/Publishing.md](docs/Publishing.md)), pero todavía no en todos los escritorios reales. Lleva el instalador de Nautilus en `/usr/share/mandarina/`, que es el segundo comando; no toca tus archivos hasta que lo ejecutes. Las herramientas de conversión van como paquetes recomendados, así que `apt` las instala por ti (unos 600 a 700 MB en un sistema vacío, sobre todo LibreOffice); añade `--no-install-recommends` para omitirlas e instalarlas después, como pide la app.
 
 ### Desinstalar
 

@@ -25,7 +25,7 @@ Rebuilt on 2026-10-18 with the current code (languages, settings and `assets/` i
 | `npm run tauri build -- --bundles deb` | OK, 1 min 07 s. `Mandarina_0.1.0_amd64.deb` of 2.4 MB (2.57 MiB, package name `mandarina`, with the current code). |
 | Release binary startup (`medir.sh`) | 1st cold run ~2.9 s until the wheel is ready; next ones ~0.9 to 1.1 s. Full-screen window at ~0.5 s. |
 
-The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/mandarina` (6.5 MB), `usr/share/applications/Mandarina.desktop` (category Utility, `Exec=mandarina`) and hicolor icons (32, 128 and 256@2). It **does not install** the Nautilus script or the shortcut: `packaging/install-nautilus.sh` is still manual, and it can be given `/usr/bin/mandarina`. A post-install script could be added, but it would touch the `~/.local` of every user and it is not done.
+The `.deb` (path `src-tauri/target/release/bundle/deb/`) contains `usr/bin/mandarina` (6.5 MB), the Nautilus installer in `usr/share/mandarina/` (`install-nautilus.sh` and `nautilus/mandarina-script`, configured in `bundle.linux.deb.files` of `tauri.conf.json`; the installer finds the installed program by itself when it is not inside a repository), `usr/share/applications/Mandarina.desktop` (category Utility, `Exec=mandarina`) and hicolor icons (32, 128 and 256@2). It **does not install** the Nautilus script or the shortcut by itself: the user runs `bash /usr/share/mandarina/install-nautilus.sh` (a post-install script would touch the `~/.local` of every user and is not done). A post-install script could be added, but it would touch the `~/.local` of every user and it is not done.
 
 ### Dependencies
 

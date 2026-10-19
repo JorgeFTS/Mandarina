@@ -58,7 +58,10 @@ msg() {
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo="$(dirname "$here")"
+# Without an argument: the debug build of a repository checkout if it exists; otherwise the installed
+# program (when this script comes from the .deb it lives in /usr/share/mandarina and there is no repository)
 default_bin="$repo/src-tauri/target/debug/mandarina"
+if [ ! -x "$default_bin" ]; then default_bin="$(command -v mandarina || echo /usr/bin/mandarina)"; fi
 bin="$(realpath -m -- "${1:-$default_bin}")"
 
 source_script="$here/nautilus/mandarina-script"

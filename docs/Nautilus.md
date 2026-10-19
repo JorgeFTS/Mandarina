@@ -6,6 +6,7 @@ Files: `packaging/nautilus/mandarina-script` (the script; the installer copies i
 - The installer copies the script to `~/.local/share/nautilus/scripts/`, replaces `__MANDARINA_BIN__` with the absolute path of the binary and is idempotent. It picks the name with the same language rule as the app (`MANDARINA_LANG`, the language saved in the settings, `LC_ALL`, `LC_MESSAGES`, `LANGUAGE`, `LANG`), **deletes the scripts of the other languages** so there are never two entries, and its messages come out in the active language. To uninstall: delete that file.
 - **Keyboard shortcut:** the installer writes `<Alt>m Convert with Mandarina` (or the name of the language in use) in `~/.config/nautilus/scripts-accels` (change it with `MANDARINA_ATAJO="<Control><Alt>m" packaging/install-nautilus.sh`). Select the file in Nautilus and press the shortcut. Nautilus reads that file at startup: after installing, run `nautilus -q`.
 - It also shows up under right click > Scripts.
+- With the `.deb`, the installer and the script live in `/usr/share/mandarina/` and the command is `bash /usr/share/mandarina/install-nautilus.sh` (with no argument it uses the installed `mandarina`; with a repository checkout it prefers the debug build in `src-tauri/target/debug/`).
 - Format of `scripts-accels` inferred, not confirmed in the documentation: one line `accelerator script name`. When installing, the line of any of the names is removed and the rest is left alone.
 
 ## Standalone binary
