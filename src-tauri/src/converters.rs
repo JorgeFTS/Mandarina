@@ -488,7 +488,7 @@ fn convert_ffmpeg(src: &str, out: &str, target: &str, progress: Option<Progress>
 // Reference document of the docx files: A4 with 2.5 cm margins and the "Centered" style.
 // It was made from pandoc's one (`pandoc -o x.docx --print-default-data-file reference.docx`).
 const REFERENCE_DOCX: &[u8] = include_bytes!("../assets/reference-a4.docx");
-const CENTER_FILTER: &str = include_str!("../assets/center.lua");
+const DOCX_FILTER: &str = include_str!("../assets/docx-filter.lua");
 
 // <p align="center">…</p> -> <div align="center"><p>…</p></div>. Only the form with double quotes.
 fn wrap_centered_paragraphs(html: &str) -> String {
@@ -512,6 +512,10 @@ fn wrap_centered_paragraphs(html: &str) -> String {
     out
 }
 
+// pandoc shares the widths of a pipe table by the dashes of its separator line when a row is longer than
+// --columns (72 by default), which leaves tiny columns. With a huge value it leaves the widths to the reader.
+const COLUMNS: &str = "--columns=100000";
+
 fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     need(&["pandoc"], "sudo apt install pandoc")?;
     let folder = out.parent().unwrap_or(Path::new("."));
@@ -528,7 +532,7 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let via_html = get_ext(src) == "md" && matches!(target, "docx" | "txt");
     if via_html {
         let mid = st(&tmp.path().join("mid.html"));
-        run_in("pandoc", &[src_text.as_str(), "-f", "markdown", "-t", "html", "-o", mid.as_str()], Some(folder))?;
+        run_in("pandoc", &[src_text.as_str(), "-f", "markdown", "-t", "html", COLUMNS, "-o", mid.as_str()], Some(folder))?;
         // pandoc loses the align of <p>; wrapped in a <div align="center"> it does keep it
         if let Ok(html) = std::fs::read_to_string(&mid) {
             std::fs::write(&mid, wrap_centered_paragraphs(&html))
@@ -539,11 +543,11 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     // The docx files go in A4 (pandoc uses Letter by default) and with the "Centered" style defined; the filter
     // applies it to the <div align="center">. Both files are inside the program (assets/).
     let reference = st(&tmp.path().join("reference.docx"));
-    let filter = st(&tmp.path().join("center.lua"));
+    let filter = st(&tmp.path().join("docx-filter.lua"));
     let reference_arg = format!("--reference-doc={reference}");
     let filter_arg = format!("--lua-filter={filter}");
     if target == "docx" {
-        std::fs::write(&reference, REFERENCE_DOCX).and_then(|_| std::fs::write(&filter, CENTER_FILTER))
+        std::fs::write(&reference, REFERENCE_DOCX).and_then(|_| std::fs::write(&filter, DOCX_FILTER))
             .map_err(|e| tr!("Could not write the file: {e}", "No se pudo escribir el archivo: {e}", e = e))?;
     }
 
@@ -551,6 +555,10 @@ fn convert_pandoc(src: &Path, out: &Path, target: &str) -> Result<(), String> {
     let mut args = vec![src_text.as_str(), "-o", out_text.as_str(), resource.as_str()];
     if via_html {
         args.extend(["-f", "html"]);
+    }
+    // Without a wrap width, the dashes of a pipe table's separator line do not decide the column widths
+    if get_ext(src) == "md" && matches!(target, "html" | "epub") {
+        args.push(COLUMNS);
     }
     if target == "docx" {
         args.extend([reference_arg.as_str(), filter_arg.as_str()]);
@@ -1357,6 +1365,37 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert!(std::fs::read_to_string(&txt).unwrap().contains("Hola mundo"));
         let docx = convert_blocking(md.to_str().unwrap(), "docx").unwrap();
         assert!(std::fs::metadata(&docx).unwrap().len() > 0);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn tabla_markdown_con_separador_largo_reparte_anchos_por_contenido() {
+        let _guard = lock();
+        if !tool_exists("pandoc") || !tool_exists("unzip") {
+            return;
+        }
+        let dir = test_dir("tabla-md");
+        let md = dir.join("tabla.md");
+        let rule = "-".repeat(150);
+        let text = format!(
+            "| Ver | Fecha | Autor | Descripcion |\n|{r}|{r}|{r}|{r}|\n| 1.0 | 2026-01-01 | Ana | Primera version del documento con un texto bastante largo para que la fila pase de 72 columnas |\n",
+            r = rule
+        );
+        std::fs::write(&md, text).unwrap();
+        let html = convert_blocking(md.to_str().unwrap(), "html").unwrap();
+        assert!(!std::fs::read_to_string(&html).unwrap().contains("<colgroup>"));
+        let docx = convert_blocking(md.to_str().unwrap(), "docx").unwrap();
+        let xml = Command::new("unzip").args(["-p", &docx, "word/document.xml"]).output().unwrap();
+        let xml = String::from_utf8_lossy(&xml.stdout).to_string();
+        let widths: Vec<u32> = xml
+            .split("<w:gridCol w:w=\"")
+            .skip(1)
+            .map(|piece| piece.split('"').next().unwrap().parse().unwrap())
+            .collect();
+        assert_eq!(widths.len(), 4);
+        let total: u32 = widths.iter().sum();
+        assert!(widths[0] * 100 / total >= 5, "first column too narrow: {widths:?}");
+        assert!(widths[3] > widths[0] && widths[3] > widths[1], "last column should be the widest: {widths:?}");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
