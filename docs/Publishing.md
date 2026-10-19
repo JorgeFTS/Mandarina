@@ -6,7 +6,7 @@ Notes on packaging and on preparing the repository for GitHub. Related: [[Nautil
 
 - Published at https://github.com/JorgeFTS/Mandarina (branch `main`, first commit `b8e1f48`; `repository` is set in `Cargo.toml`). Commits carry no co-author lines. `.gitignore` ignores `node_modules/`, `src-tauri/target/` and `src-tauri/gen/` (Tauri regenerates `gen/schemas` when building; `Cargo.lock` is versioned) and `.claude/`. It also ignores `test-files/` (personal test files, 170 MB), `*.deb`/`*.rpm`/`*.AppImage`, `.env*` and, by the author's decision, `CLAUDE.md` and `SKILLS.md` (notes for working with Claude Code; they stay on disk but are not published).
 - **MIT** license (`LICENSE`, with "Copyright (c) 2026 JorgeFTS", the git username; it can be changed to a full name; also in `Cargo.toml` and `package.json`).
-- Pending for the author: a real author in `authors` (now "Autores de Mandarina"), and whether the name "Mandarina" (the Spanish translation of "Tangerine") can be confused with the Leap Studio brand.
+- Pending for the author: a real author in `authors` (now "Autores de Mandarina").
 - The temporary debug log (`/tmp/mandarina-debug.log`) has been removed.
 - The READMEs are `README.md` (English, the one GitHub shows) and `README.es.md` (Spanish). See [[Languages]].
 - Package metadata (`Cargo.toml` `[package]` and `bundle` in `tauri.conf.json`) is in English. The `.desktop` of the `.deb` is also English only (Tauri does not localize the name or the comment without its own `desktopTemplate`; this has not been done). `ghostscript` was added to `Recommends` because reducing the size of a PDF needs it.

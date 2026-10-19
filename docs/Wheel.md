@@ -1,6 +1,6 @@
 # Wheel
 
-Files: `src/index.html`, `src/styles.css`, `src/geometria.js` (pure geometry), `src/main.js` (logic). No framework and no bundler. It uses the commands of [[Tauri-Commands]] through `window.__TAURI__`. Own design, inspired by the behavior of [[Tangerine-Reference]].
+Files: `src/index.html`, `src/styles.css`, `src/geometria.js` (pure geometry), `src/main.js` (logic). No framework and no bundler. It uses the commands of [[Tauri-Commands]] through `window.__TAURI__`.
 
 The window (see `tauri.conf.json`) is transparent, borderless, always on top and **starts hidden**: the interface paints and then calls `show_wheel`.
 
@@ -33,7 +33,7 @@ Since the window no longer covers the screen, a click outside does not close it:
 - **Thumbnail:** after painting the wheel, `thumbnail(path)` is called without waiting; if a data URL arrives it replaces the icon (88 px, rounded corners, 250 ms fade) and the pill stays below. If it fails the icon stays and no error is shown. If the user changes file before it arrives, the old response is ignored.
 - **Real progress:** `animarBarra` has two modes. With ffmpeg (audio, video, subtitles) and with batches, the bar starts at 0 and follows **only** the `convert-progress` events (the text says "Converting to MP3 · 42%"); if none arrives in 3 s, it switches to the simulated one. With images, documents and the rest, a simulated bar rises (fast and slowing near 92%) with no percentage in the text. It never goes backwards. It listens before calling `convert` and does `unlisten` when it ends. A fixed bug: the simulated one used to start always and got ahead of the real percentage (the bar was at 50% while the text said 0%); now the real one is not simulated.
 - **Tools:** see [[Tools]]. The wheel has three levels (`conversion`, `herramientas`, `opciones`) with the same geometry; the TOOLS segment (wrench, bluish-gray tone) goes last and only with one file. The center of the disc or Escape go back one level. The tools with an editor open `#vista-editor` with `window.Editor` (`src/editor.js` and `src/editor.css`, prefix `.ed-`): the window becomes 780x640 (`resize_center`) and goes back to 460x460 when finished; while the editor is open the idle close and the close on losing focus do not apply (`vistaActual === "editor"`). Demos: `?demo=herramientas|opciones|editorimagen|editoraudio|editorvideo|herramientaejecutando` with `&tipo=imagen|audio|video|pdf`.
-- Pending: file action wheels (see [[Tangerine-Reference]]).
+- Pending: file action wheels.
 
 ## Not verified in the real window
 

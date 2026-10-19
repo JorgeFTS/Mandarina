@@ -202,8 +202,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The technical documentation is in [docs/
 
 [MIT](LICENSE). You can use, copy, modify and distribute Mandarina, as long as you keep the copyright notice.
 
-## Acknowledgements and inspiration
+## Acknowledgements
 
-Mandarina is inspired by the behavior of Tangerine for Mac (Leap Studio): a format wheel that appears next to the cursor. Mandarina is an independent project: it is not affiliated with Leap Studio or Tangerine, and it does not copy their design, icon, text or assets. All code, design and the icon are original.
-
-Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.
+All code, design and the icon are original. Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.

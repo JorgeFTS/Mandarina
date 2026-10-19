@@ -1,6 +1,6 @@
 # Tools
 
-The second wheel of the app, inspired by the tools wheel of [[Tangerine-Reference]]. It opens from a **TOOLS** segment of the conversion wheel and only with **one file** selected (it is not offered with several). Commands and types in [[Tauri-Commands]]; interface in [[Wheel]]; Rust in `src-tauri/src/tools.rs`.
+The second wheel of the app. It opens from a **TOOLS** segment of the conversion wheel and only with **one file** selected (it is not offered with several). Commands and types in [[Tauri-Commands]]; interface in [[Wheel]]; Rust in `src-tauri/src/tools.rs`.
 
 ## Flow of use
 

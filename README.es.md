@@ -202,8 +202,6 @@ Ver [CONTRIBUTING.md](CONTRIBUTING.md) (en inglés). La documentación técnica 
 
 [MIT](LICENSE). Puedes usar, copiar, modificar y distribuir Mandarina, siempre que conserves el aviso de copyright.
 
-## Agradecimientos e inspiración
+## Agradecimientos
 
-Mandarina se inspira en el comportamiento de Tangerine for Mac (Leap Studio): una rueda de formatos que aparece junto al cursor. Mandarina es un proyecto independiente: no está afiliada a Leap Studio ni a Tangerine, y no copia su diseño, su icono, sus textos ni sus recursos. Todo el código, el diseño y el icono son propios.
-
-Construida con [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice y poppler.
+Todo el código, el diseño y el icono son propios. Construida con [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice y poppler.
