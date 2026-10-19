@@ -38,7 +38,7 @@ Configured in `tauri.conf.json` (`bundle.linux.deb`):
 
 ### Release
 
-The release `v0.1.0-beta` exists as a private **draft** on GitHub with the `.deb` and `SHA256SUMS` (rebuilt after each fix with `gh release upload v0.1.0-beta --clobber`); it is not published yet. When it is, add the "install from the release" steps to the READMEs.
+The release `v0.1.0-beta` exists as a private **draft** on GitHub with the `.deb` and `SHA256SUMS` (rebuilt after each fix with `gh release upload v0.1.0-beta --clobber`); it is not published yet. When it is, the READMEs already point to its download URL (`releases/download/v0.1.0-beta/`), so push them only after publishing, or the link gives a 404.
 
 ### Other distributions
 

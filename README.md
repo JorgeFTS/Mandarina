@@ -47,54 +47,55 @@ Select one or more files in Nautilus, press a shortcut or right-click, and a whe
 
 ## Installation
 
-The only package is a `.deb` for Debian, Ubuntu and derivatives (see [Optional: build a `.deb` package](#optional-build-a-deb-package)). On other distributions (Arch, CachyOS, Fedora...) you build it from source with the equivalent packages; that should work, but it has not been checked, and packages for them are planned. The steps below use the Debian and Ubuntu package names.
+Copy and paste each block into a terminal.
 
-### 1. Install the conversion tools
+### Debian, Ubuntu, Linux Mint and derivatives (recommended)
 
-The conversions are done by system programs. If one is missing, only the formats that use it fail, and the app tells you which package to install.
+```bash
+wget https://github.com/JorgeFTS/Mandarina/releases/download/v0.1.0-beta/Mandarina_0.1.0_amd64.deb
+sudo apt install ./Mandarina_0.1.0_amd64.deb
+```
+
+That installs the app and the conversion tools it uses (about 600 to 700 MB on an empty system, mostly LibreOffice; much less on a normal desktop, where most of them are already installed). Then open **Mandarina** from the applications menu, or run `mandarina` and drag a file onto it.
+
+To get the right-click entry and the **Alt+M** shortcut in **Nautilus** (GNOME, Ubuntu), run this and then restart Nautilus (`nautilus -q` closes its windows):
+
+```bash
+bash /usr/share/mandarina/install-nautilus.sh
+nautilus -q
+```
+
+The installer is only run by you; it does not touch your files by itself. Other file managers (Nemo in Mint, Dolphin...) are not supported yet.
+
+To skip the conversion tools and install them later, as the app asks, use `sudo apt install --no-install-recommends ./Mandarina_0.1.0_amd64.deb`.
+
+The package was installed and tried in clean containers of Ubuntu 22.04, 24.04 and 26.04 and Debian 12 and 13 (see [docs/Publishing.md](docs/Publishing.md)), but not yet on every real desktop. Linux Mint was not tried.
+
+### Other distributions (Arch, CachyOS, Fedora...): build from source
+
+There is no package for them yet, so you build it. It should work with the equivalent packages, but that has not been checked. Install [Rust](https://rustup.rs) (1.85 or newer) and [Node.js](https://nodejs.org) with npm first. The package names below are the Debian and Ubuntu ones.
 
 ```bash
 sudo apt install ffmpeg imagemagick librsvg2-bin pandoc libreoffice poppler-utils ghostscript zip unzip 7zip
-```
-
-### 2. Install the build tools
-
-```bash
 sudo apt install build-essential curl wget file libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-```
-
-Plus [Rust](https://rustup.rs) (edition 2024, so Rust 1.85 or newer) and [Node.js](https://nodejs.org) with npm.
-
-### 3. Get the code and build it
-
-```bash
 git clone https://github.com/JorgeFTS/Mandarina.git
 cd Mandarina
 npm install
 npm run tauri build -- --no-bundle
 ```
 
-The binary is `src-tauri/target/release/mandarina`. The first build takes a few minutes (it compiles with LTO). Rebuild whenever `src/` changes, because the binary embeds the interface. For a faster, larger build use `npm run tauri build -- --debug --no-bundle` (the binary goes to `src-tauri/target/debug/`), and `npm run tauri dev` for development mode.
+The first line installs the conversion tools (if one is missing, only the formats that use it fail, and the app tells you which package to install) and the second one the build tools. The binary is `src-tauri/target/release/mandarina`. The first build takes a few minutes (it compiles with LTO). Rebuild whenever `src/` changes, because the binary embeds the interface. For a faster, larger build use `npm run tauri build -- --debug --no-bundle` (the binary goes to `src-tauri/target/debug/`), and `npm run tauri dev` for development mode.
 
-### 4. Add the right-click entry and the shortcut in Nautilus
+For the Nautilus entry and shortcut:
 
 ```bash
 packaging/install-nautilus.sh src-tauri/target/release/mandarina
-nautilus -q          # restart Nautilus so it reads the shortcut
+nautilus -q
 ```
 
 The installer copies a script to `~/.local/share/nautilus/scripts/` and adds the `Alt+M` shortcut to `~/.config/nautilus/scripts-accels`. The script is named after the active language (see [Language](#language)): `Convert with Mandarina`, `Convertir con Mandarina`, `Converter com Mandarina` or `Convertir avec Mandarina`. If an entry of another language was installed before, the installer removes it so there is only one, and it can be run again at any time. For a different shortcut: `MANDARINA_ATAJO="<Control><Alt>m" packaging/install-nautilus.sh src-tauri/target/release/mandarina`.
 
-### Optional: build a `.deb` package
-
-```bash
-npm run tauri build -- --bundles deb
-sudo apt install ./src-tauri/target/release/bundle/deb/Mandarina_0.1.0_amd64.deb
-bash /usr/share/mandarina/install-nautilus.sh
-nautilus -q
-```
-
-The package was installed and tried in clean containers of Ubuntu 22.04, 24.04 and 26.04 and Debian 12 and 13 (see [docs/Publishing.md](docs/Publishing.md)), but not yet on every real desktop. It carries the Nautilus installer in `/usr/share/mandarina/`, which is the second command; it does not touch your files until you run it. The conversion tools are recommended packages, so `apt` installs them for you (about 600 to 700 MB on an empty system, mostly LibreOffice); add `--no-install-recommends` to skip them and install them later, as the app asks.
+To build your own `.deb`: `npm run tauri build -- --bundles deb` (it goes to `src-tauri/target/release/bundle/deb/`).
 
 ### Uninstall
 
