@@ -28,12 +28,33 @@ Select one or more files in Nautilus, press a shortcut or right-click, and a whe
 
 > **Status: beta (version 0.1.0).** It works, and the `.deb` was tried in clean Debian and Ubuntu systems, but the app itself has only been used on a real desktop with Ubuntu and GNOME. Read [Project status](#project-status) before relying on it.
 
+## What can it convert?
+
+**Ten kinds of file and over 250 conversions**, all on your machine. Pick a file, and the wheel shows only the formats that file can become.
+
+| | Type | From | To |
+|---|---|---|---|
+| 🖼️ | **Images** | `jpg` `png` `webp` `heic*` `tiff` `avif` `bmp` `gif` `svg` | `jpg` `png` `webp` `tiff` `avif` `bmp` `pdf` |
+| 🎵 | **Audio** | `mp3` `m4a` `wav` `flac` `ogg` `opus` `aiff` `wma` | `mp3` `m4a` `wav` `flac` `ogg` `opus` `aiff` `wma` |
+| 🎬 | **Video** | `mp4` `mov` `mkv` `webm` `avi` `wmv` | `mp4` `mov` `mkv` `webm` `avi` `wmv` `gif` `mp3` |
+| 📄 | **PDF** | `pdf` | `docx` `jpg` `png` `epub` `txt` `md` |
+| 📝 | **Documents** | `docx` `doc` `odt` `rtf` `md` `txt` `epub` `html` | `docx` `md` `txt` `epub` `html` `pdf` `jpg` `png` |
+| 📊 | **Presentations** | `pptx` `ppt` `odp` | `pdf` `jpg` `png` |
+| 📈 | **Spreadsheets** | `xlsx` `xls` `ods` `csv` `tsv` | `xlsx` `ods` `csv` `tsv` `pdf` |
+| 💬 | **Subtitles** | `srt` `vtt` | `srt` `vtt` `txt` |
+| 🗜️ | **Archives** | `zip` `tar` `tar.gz` `rar*` | `zip` `tar` `tar.gz` |
+| 📁 | **Folders** | `any folder` | `zip` `tar` `tar.gz` |
+
+\* `heic` and `rar` can only be read: Mandarina converts *from* them but cannot create them. Some targets depend on how your ImageMagick or ffmpeg was built. The program that does each conversion is listed in [docs/Converters.md](docs/Converters.md).
+
+Beyond formats, the [tools wheel](#tools) can reduce size, strip metadata, trim, rotate, flip, resize and remove audio, and several files at once can be packed into one ZIP.
+
 ## Contents
 
+- [What can it convert?](#what-can-it-convert)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Tools](#tools)
-- [Supported formats](#supported-formats)
 - [Settings](#settings)
 - [Language](#language)
 - [Limitations and known issues](#limitations-and-known-issues)
@@ -128,23 +149,6 @@ With **a single file**, the last wheel segment is **TOOLS** and opens a second w
 The result goes next to the original, in the same format and with a suffix: `photo (compressed).jpg`, and likewise `(no metadata)`, `(trimmed)`, `(rotated)`, `(flipped)`, `(resized)` and `(no audio)`. If compressing does not save at least 2 %, the app says so instead of creating a nearly identical file. Wav, flac, aiff and bmp do not offer Reduce size. Reduce size is not zipping: the ZIP tool packs any file into a `.zip`.
 
 The trim editors (image, audio and video) include a field for the name of the new file. It starts as `photo (trimmed)`, the original extension is shown next to it, and it is checked as you type. Compressing a PDF needs ghostscript. More details in [docs/Tools.md](docs/Tools.md).
-
-## Supported formats
-
-| Type | Targets | Tool |
-|---|---|---|
-| Image | jpg, png, webp, tiff, avif, bmp, pdf | ImageMagick, rsvg-convert (SVG) |
-| Audio | mp3, m4a, wav, flac, ogg, opus, aiff, wma | ffmpeg |
-| Video | mp4, mov, mkv, webm, avi, wmv, gif, mp3 | ffmpeg |
-| PDF | docx, jpg, png, epub, txt, md | pdftoppm, pdftotext, pandoc, LibreOffice |
-| Document | docx, md, txt, epub, html, pdf, jpg, png | pandoc, LibreOffice |
-| Presentation | pdf, jpg, png | LibreOffice |
-| Spreadsheet | xlsx, ods, csv, tsv, pdf | LibreOffice |
-| Subtitles | srt, vtt, txt | ffmpeg |
-| Archive | zip, tar, tar.gz (rar as input only) | zip, tar, unzip, 7z |
-| Folder | zip, tar, tar.gz | zip, tar |
-
-HEIC is supported as input only. Some targets depend on how your ImageMagick or ffmpeg was built.
 
 ## Settings
 

@@ -28,12 +28,33 @@ Seleccionas uno o varios archivos en Nautilus, pulsas un atajo o haces clic dere
 
 > **Estado: beta (versión 0.1.0).** Funciona y el `.deb` se probó en sistemas limpios de Debian y Ubuntu, pero la app solo se ha usado en un escritorio real con Ubuntu y GNOME. Lee [Estado del proyecto](#estado-del-proyecto) antes de usarlo.
 
+## ¿Qué puede convertir?
+
+**Diez tipos de archivo y más de 250 conversiones**, todo en tu equipo. Eliges un archivo y la rueda muestra solo los formatos en los que ese archivo se puede convertir.
+
+| | Tipo | Desde | A |
+|---|---|---|---|
+| 🖼️ | **Imágenes** | `jpg` `png` `webp` `heic*` `tiff` `avif` `bmp` `gif` `svg` | `jpg` `png` `webp` `tiff` `avif` `bmp` `pdf` |
+| 🎵 | **Audio** | `mp3` `m4a` `wav` `flac` `ogg` `opus` `aiff` `wma` | `mp3` `m4a` `wav` `flac` `ogg` `opus` `aiff` `wma` |
+| 🎬 | **Vídeo** | `mp4` `mov` `mkv` `webm` `avi` `wmv` | `mp4` `mov` `mkv` `webm` `avi` `wmv` `gif` `mp3` |
+| 📄 | **PDF** | `pdf` | `docx` `jpg` `png` `epub` `txt` `md` |
+| 📝 | **Documentos** | `docx` `doc` `odt` `rtf` `md` `txt` `epub` `html` | `docx` `md` `txt` `epub` `html` `pdf` `jpg` `png` |
+| 📊 | **Presentaciones** | `pptx` `ppt` `odp` | `pdf` `jpg` `png` |
+| 📈 | **Hojas de cálculo** | `xlsx` `xls` `ods` `csv` `tsv` | `xlsx` `ods` `csv` `tsv` `pdf` |
+| 💬 | **Subtítulos** | `srt` `vtt` | `srt` `vtt` `txt` |
+| 🗜️ | **Comprimidos** | `zip` `tar` `tar.gz` `rar*` | `zip` `tar` `tar.gz` |
+| 📁 | **Carpetas** | `cualquier carpeta` | `zip` `tar` `tar.gz` |
+
+\* `heic` y `rar` solo se pueden leer: Mandarina convierte *desde* ellos, pero no puede crearlos. Algunos destinos dependen de cómo se compiló tu ImageMagick o ffmpeg. El programa que hace cada conversión está en [docs/Converters.md](docs/Converters.md).
+
+Además de los formatos, la [rueda de herramientas](#herramientas) puede reducir el tamaño, quitar metadatos, recortar, girar, voltear, redimensionar y quitar el audio, y varios archivos a la vez se pueden empaquetar en un solo ZIP.
+
 ## Contenido
 
+- [¿Qué puede convertir?](#qué-puede-convertir)
 - [Instalación](#instalación)
 - [Uso](#uso)
 - [Herramientas](#herramientas)
-- [Formatos soportados](#formatos-soportados)
 - [Ajustes](#ajustes)
 - [Idioma](#idioma)
 - [Limitaciones y problemas conocidos](#limitaciones-y-problemas-conocidos)
@@ -128,23 +149,6 @@ Con **un solo archivo**, el último segmento de la rueda es **HERRAMIENTAS** y a
 El resultado va junto al original, con el mismo formato y un sufijo: `foto (comprimido).jpg`, y del mismo modo `(sin metadatos)`, `(recortado)`, `(girado)`, `(volteado)`, `(redimensionado)` y `(sin audio)`. Si comprimir no reduce al menos un 2 %, avisa en vez de crear un archivo casi igual. Wav, flac, aiff y bmp no ofrecen reducir tamaño. Reducir tamaño no es zipear: la herramienta ZIP empaqueta cualquier archivo en un `.zip`.
 
 Los editores de recorte (imagen, audio y vídeo) incluyen un campo con el nombre del archivo nuevo. Empieza como `foto (recortado)`, junto a él se muestra la extensión del original y se valida mientras escribes. Comprimir un PDF necesita ghostscript. Más detalles en [docs/Tools.md](docs/Tools.md) (en inglés).
-
-## Formatos soportados
-
-| Tipo | Destinos | Herramienta |
-|---|---|---|
-| Imagen | jpg, png, webp, tiff, avif, bmp, pdf | ImageMagick, rsvg-convert (SVG) |
-| Audio | mp3, m4a, wav, flac, ogg, opus, aiff, wma | ffmpeg |
-| Vídeo | mp4, mov, mkv, webm, avi, wmv, gif, mp3 | ffmpeg |
-| PDF | docx, jpg, png, epub, txt, md | pdftoppm, pdftotext, pandoc, LibreOffice |
-| Documento | docx, md, txt, epub, html, pdf, jpg, png | pandoc, LibreOffice |
-| Presentación | pdf, jpg, png | LibreOffice |
-| Hoja de cálculo | xlsx, ods, csv, tsv, pdf | LibreOffice |
-| Subtítulo | srt, vtt, txt | ffmpeg |
-| Comprimido | zip, tar, tar.gz (rar solo como entrada) | zip, tar, unzip, 7z |
-| Carpeta | zip, tar, tar.gz | zip, tar |
-
-HEIC solo se admite como entrada. Algunos destinos dependen de lo que tenga compilado tu ImageMagick o ffmpeg.
 
 ## Ajustes
 
