@@ -82,7 +82,7 @@ bash /usr/share/mandarina/install-nautilus.sh
 nautilus -q
 ```
 
-The installer is only run by you; it does not touch your files by itself. Other file managers (Nemo in Mint, Dolphin...) are not supported yet.
+The installer is only run by you; it does not touch your files by itself. It sets up Nautilus and, on Linux Mint, Nemo (right click > *Convert with Mandarina*; restart it with `nemo -q`; to choose one, `MANDARINA_FM=nemo bash /usr/share/mandarina/install-nautilus.sh`). The Nemo entry was written from its documentation and not yet tried on a real Mint. Dolphin and Thunar are not supported yet.
 
 To skip the conversion tools and install them later, as the app asks, use `sudo apt install --no-install-recommends ./Mandarina_0.1.0_amd64.deb`.
 

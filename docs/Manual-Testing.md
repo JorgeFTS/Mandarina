@@ -8,6 +8,7 @@ Tick each box as you try it and note below what happened if something fails. Box
 
 - [ ] `cd src-tauri && cargo test` passes and `npm run tauri build -- --debug --no-bundle` builds without warnings.
 - [ ] `bash packaging/install-nautilus.sh` and then `nautilus -q`. In Nautilus, right click → Scripts → "Convert with Mandarina" (or the name for your language) and the **Alt+M** shortcut show up.
+- [ ] Linux Mint only: `bash packaging/install-nemo.sh` and then `nemo -q`. In Nemo, right click on a file and on a folder → "Convert with Mandarina" shows up and opens the wheel; try a name with spaces and several selected files.
 - [ ] There are test files in a local `test-files/` folder (image, audio, video, pdf, docx, csv, srt, a folder). That folder is not in the repository (it is in `.gitignore`); create your own.
 - To see errors that the interface does not show, run the app from a terminal: `GDK_BACKEND=x11 src-tauri/target/debug/mandarina "path/file"`. There is no debug log in `/tmp` anymore.
 

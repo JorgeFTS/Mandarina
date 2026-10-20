@@ -45,6 +45,7 @@
         "depends": [],
         "files": {
           "/usr/share/mandarina/install-nautilus.sh": "../packaging/install-nautilus.sh",
+          "/usr/share/mandarina/install-nemo.sh": "../packaging/install-nemo.sh",
           "/usr/share/mandarina/nautilus/mandarina-script": "../packaging/nautilus/mandarina-script"
         },
         "recommends": [

@@ -41,7 +41,7 @@ The release `v0.1.0-beta` exists as a private **draft** on GitHub with the `.deb
 
 ### Other distributions
 
-The `.deb` only serves Debian, Ubuntu and derivatives. Planned, in this order: a `PKGBUILD` for Arch, CachyOS and Manjaro (with `sudo pacman -S` in the missing-tool messages), then an AppImage, which also covers Fedora and openSUSE. Dolphin, Nemo and Thunar integration is left until someone asks. Nothing of this is done.
+The `.deb` only serves Debian, Ubuntu and derivatives. Planned, in this order: a `PKGBUILD` for Arch, CachyOS and Manjaro (with `sudo pacman -S` in the missing-tool messages), then an AppImage, which also covers Fedora and openSUSE. Nemo is done (see [[Nautilus]]); Dolphin and Thunar integration is left until someone asks. Nothing of this is done.
 
 ## Untested
 

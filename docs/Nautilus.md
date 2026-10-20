@@ -1,4 +1,4 @@
-# Nautilus (right click)
+# Nautilus and Nemo (right click)
 
 Files: `packaging/nautilus/mandarina-script` (the script; the installer copies it as `Convert with Mandarina`, `Convertir con Mandarina`, `Converter com Mandarina` or `Convertir avec Mandarina` depending on the language, see [[Languages]]) and `packaging/install-nautilus.sh` (the installer). It launches the app with the paths of the selected items, which opens flow A of the [[Wheel]].
 
@@ -8,6 +8,14 @@ Files: `packaging/nautilus/mandarina-script` (the script; the installer copies i
 - It also shows up under right click > Scripts.
 - With the `.deb`, the installer and the script live in `/usr/share/mandarina/` and the command is `bash /usr/share/mandarina/install-nautilus.sh` (with no argument it uses the installed `mandarina`; with a repository checkout it prefers the debug build in `src-tauri/target/debug/`).
 - Format of `scripts-accels` inferred, not confirmed in the documentation: one line `accelerator script name`. When installing, the line of any of the names is removed and the rest is left alone.
+
+## Nemo (Linux Mint)
+
+`packaging/install-nautilus.sh` also writes a Nemo action, `~/.local/share/nemo/actions/mandarina.nemo_action` (one fixed file name, so there are never two entries; `Name` and `Comment` come out in the active language). It runs `env GDK_BACKEND=x11 "<bin>" %F` with `Quote=double` (each path quoted, spaces preserved), `Selection=notnone` and `Extensions=any;dir;`, so it works on files and folders. `packaging/install-nemo.sh` is the same installer with `MANDARINA_FM=nemo` (also in the `.deb`, in `/usr/share/mandarina/`).
+
+- Which one is set up: `MANDARINA_FM=nautilus|nemo|both`; without it, each file manager that is installed (command in the PATH or folder in `~/.local/share`), and Nautilus if neither is found.
+- Nemo actions have no keyboard shortcut, so `MANDARINA_ATAJO` only applies to Nautilus. After installing, `nemo -q`.
+- **Untested in real Nemo**: the format follows the Nemo documentation (not available here); only the generated file was checked. See [[Manual-Testing]].
 
 ## Standalone binary
 
