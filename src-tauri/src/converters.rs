@@ -273,7 +273,8 @@ pub(crate) fn probe_duration(src: &str) -> Option<f64> {
     parse_duration(&String::from_utf8_lossy(&output.stdout))
 }
 
-// Reads the stdout of ffmpeg line by line and reports the percentage at most every 100 ms
+// Reads the stdout of ffmpeg line by line and reports the percentage at most every 100 ms.
+// When the stream ends it reports the last percentage that was skipped, so a fast run still ends high.
 fn read_progress_in_thread<R: Read + Send + 'static>(
     stream: Option<R>,
     total: f64,
@@ -282,19 +283,25 @@ fn read_progress_in_thread<R: Read + Send + 'static>(
     std::thread::spawn(move || {
         let mut last = -1.0;
         let mut last_time: Option<Instant> = None;
+        let mut skipped: Option<f64> = None;
         if let Some(stream) = stream {
             for line in BufReader::new(stream).lines().map_while(Result::ok) {
-                let Some(percent) = next_percent(&line, total, last) else {
+                let Some(percent) = next_percent(&line, total, skipped.unwrap_or(last)) else {
                     continue;
                 };
                 let too_soon = last_time.is_some_and(|t| t.elapsed() < Duration::from_millis(100));
                 if too_soon {
+                    skipped = Some(percent);
                     continue;
                 }
                 last = percent;
+                skipped = None;
                 last_time = Some(Instant::now());
                 callback(percent);
             }
+        }
+        if let Some(percent) = skipped {
+            callback(percent);
         }
         Vec::new()
     })
