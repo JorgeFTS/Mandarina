@@ -318,6 +318,7 @@ const api = demo
         return "/demo/ejemplo.mp3";
       },
       convert_many: convertirVariosDemo,
+      take_warnings: async () => [],
       cancel: async () => {},
       quit: async () => {},
     }
@@ -347,6 +348,7 @@ const api = demo
       on_file: (alArchivo) => tauri.event.listen("convert-file", (e) => alArchivo(e.payload)),
       convert: (path, format) => tauri.core.invoke("convert", { path, format }),
       convert_many: (paths, format) => tauri.core.invoke("convert_many", { paths, format }),
+      take_warnings: () => tauri.core.invoke("take_warnings"),
       cancel: () => tauri.core.invoke("cancel"),
       quit: () => tauri.core.invoke("quit"),
     };
@@ -610,6 +612,14 @@ function mostrarAviso(titulo, detalle, clase) {
   tarjeta.setAttribute("role", "alert");
 }
 
+// The conversion worked but some images were not found. With several files, the result of each one is not shown.
+function mostrarAvisoImagenes(faltan, salida) {
+  const lineas = faltan.slice(0, 3);
+  if (faltan.length > 3) lineas.push(t("result.moreErrors", { count: faltan.length - 3 }));
+  if (salida) lineas.unshift(textoSalida(salida));
+  mostrarAviso(window.I18n.plural("result.missingImages", faltan.length), lineas.join("\n"), "parcial");
+}
+
 function mostrarError(mensaje, titulo) {
   const tarjeta = mostrarTarjeta(
     "error",
@@ -804,7 +814,10 @@ async function convertir(i) {
     dejarDeEscuchar();
     // If it ended right away, the bar fills little by little until MIN_PROGRESO is met
     await barra.completar(Math.max(450, MIN_PROGRESO - (Date.now() - inicio)));
-    if (varios) mostrarResultadoVarios(salida, formato);
+    // Images that the .md links to and that were not found: the document came out without them
+    const faltan = await api.take_warnings().catch(() => []);
+    if (faltan.length > 0) mostrarAvisoImagenes(faltan, varios ? null : salida);
+    else if (varios) mostrarResultadoVarios(salida, formato);
     else mostrarListo(textoSalida(salida));
   } catch (e) {
     dejarDeEscuchar();

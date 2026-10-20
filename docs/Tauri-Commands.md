@@ -41,6 +41,7 @@ The app receives all the selected files (`mandarina path1 path2 ...`). The singl
 - Events during `convert_many`:
   - `convert-file` `{ "index": number, "total": number, "name": string }` when starting each file that is going to be converted (`index` from 1; `total` = files to convert, without the skipped or unsupported ones).
   - **Global** `convert-progress` `{ "percent": number }`: `(finished files + percentage of the current one / 100) / total * 100`, increasing, 99 at most, at most about 10 times per second. If the current file does not report progress, the percentage only jumps when each file ends.
+- `take_warnings() -> Vec<String>`: the images that a `.md` links to and that were not found during the last `convert` or `convert_many` (empty after being read once). The interface calls it when the conversion ends and, if there are any, shows a warning card instead of "Done" (see [[Converters]]).
 - The interface always uses `get_targets_many`; to convert, `convert` with 1 file and `convert_many` with more than one.
 
 ### Tools (design in [[Tools]])

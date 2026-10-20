@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Read};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::config::{self, Config};
 use crate::lang::{cancelled_error, has_code, tr, CANCELLED};
@@ -59,6 +59,10 @@ pub type Progress = Arc<dyn Fn(f64) + Send + Sync>;
 
 // It is set to true from the cancel command; run_in looks at it every 50 ms and kills the process
 pub static CANCEL: AtomicBool = AtomicBool::new(false);
+
+// Images that a .md links to and that do not exist, found while converting. The interface asks for them
+// with `take_warnings` when the conversion ends, so the result can say that the document came out without them.
+static MISSING_IMAGES: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 pub(crate) fn get_ext(path: &Path) -> String {
     // "tar.gz" has two dots: it is treated as a single extension
@@ -958,6 +962,7 @@ fn convert_blocking(path: &str, format: &str) -> Result<String, String> {
 fn convert_with(path: &str, format: &str, progress: Option<Progress>) -> Result<String, String> {
     // Every new conversion starts with no pending cancellation
     CANCEL.store(false, Ordering::SeqCst);
+    clear_missing_images();
     convert_one(path, format, progress)
 }
 
@@ -975,6 +980,9 @@ fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<S
     }
 
     let folder = src.parent().ok_or_else(|| tr("Invalid path", "Ruta no válida"))?;
+    if kind == Kind::Document && get_ext(&src) == "md" {
+        note_missing_images(&src, folder);
+    }
     // A folder uses its full name ("data.v2" is not trimmed)
     let stem = if kind == Kind::Folder {
         src.file_name().unwrap_or_default().to_string_lossy().to_string()
@@ -1009,6 +1017,105 @@ fn convert_one(path: &str, format: &str, progress: Option<Progress>) -> Result<S
         return single_page_to_file(&out, folder, &stem, format);
     }
     Ok(st(&out))
+}
+
+fn clear_missing_images() {
+    MISSING_IMAGES.lock().unwrap_or_else(|e| e.into_inner()).clear();
+}
+
+// Reads the .md and keeps the images it links to that are not next to it (pandoc leaves them out without failing)
+fn note_missing_images(md: &Path, folder: &Path) {
+    let Ok(text) = std::fs::read_to_string(md) else {
+        return;
+    };
+    let mut list = MISSING_IMAGES.lock().unwrap_or_else(|e| e.into_inner());
+    for image in missing_images(&text, folder) {
+        if !list.contains(&image) {
+            list.push(image);
+        }
+    }
+}
+
+// The links of the images of a markdown text: ![alt](path "title"), ![alt](<path>) and <img src="path">
+fn image_links(text: &str) -> Vec<String> {
+    let mut links = Vec::new();
+    // Markdown: after "![" comes the alt text, then "(" and the path up to the first space or the closing ")"
+    let mut rest = text;
+    while let Some(at) = rest.find("![") {
+        rest = &rest[at + 2..];
+        let Some(close) = rest.find("](") else {
+            break;
+        };
+        let after = &rest[close + 2..];
+        let target = match after.strip_prefix('<') {
+            Some(inside) => inside.split('>').next().unwrap_or(""),
+            None => after.split(|c: char| c.is_whitespace() || c == ')').next().unwrap_or(""),
+        };
+        links.push(target.to_string());
+    }
+    // HTML: the src of every <img>. The lowercase copy has the same offsets (only ASCII changes)
+    let lower = text.to_ascii_lowercase();
+    let mut from = 0;
+    while let Some(at) = lower[from..].find("<img") {
+        let start = from + at;
+        let end = lower[start..].find('>').map_or(text.len(), |e| start + e);
+        let tag = &text[start..end];
+        if let Some(src) = tag.to_ascii_lowercase().find("src=") {
+            let value = &tag[src + 4..];
+            let link = match value.chars().next() {
+                Some(q @ ('"' | '\'')) => value[1..].split(q).next().unwrap_or(""),
+                _ => value.split(|c: char| c.is_whitespace() || c == '/').next().unwrap_or(""),
+            };
+            links.push(link.to_string());
+        }
+        from = end;
+    }
+    links
+}
+
+// "my%20photo.png?raw=1#x" -> "my photo.png"
+fn link_to_path(link: &str) -> String {
+    let link = link.split(['?', '#']).next().unwrap_or("");
+    let bytes = link.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        let hex = bytes.get(i + 1..i + 3).and_then(|h| std::str::from_utf8(h).ok()).and_then(|h| u8::from_str_radix(h, 16).ok());
+        match (bytes[i], hex) {
+            (b'%', Some(byte)) => {
+                out.push(byte);
+                i += 3;
+            }
+            (byte, _) => {
+                out.push(byte);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).to_string()
+}
+
+// The local images of the text that do not exist (relative ones are looked up in `folder`), without repeats
+fn missing_images(text: &str, folder: &Path) -> Vec<String> {
+    let mut missing: Vec<String> = Vec::new();
+    for link in image_links(text) {
+        let link = link.trim();
+        let remote = ["http://", "https://", "data:", "//", "ftp://"].iter().any(|p| link.starts_with(p));
+        if link.is_empty() || remote {
+            continue;
+        }
+        let path = link_to_path(link);
+        if !folder.join(&path).exists() && !missing.contains(&link.to_string()) {
+            missing.push(link.to_string());
+        }
+    }
+    missing
+}
+
+// The images left out by the last conversion (the interface asks for them when it ends)
+#[tauri::command]
+pub fn take_warnings() -> Vec<String> {
+    std::mem::take(&mut *MISSING_IMAGES.lock().unwrap_or_else(|e| e.into_inner()))
 }
 
 // With a single page no folder is needed: the image is taken out and the folder is deleted.
@@ -1116,6 +1223,7 @@ fn convert_many_with(
         return Err(tr("No files", "No hay archivos"));
     }
     CANCEL.store(false, Ordering::SeqCst);
+    clear_missing_images();
     // Those already in that format are skipped and the unsupported ones do not count in the total
     let skip = |p: &String| is_already(Path::new(p), format);
     let total = paths
@@ -1222,6 +1330,33 @@ pub(crate) mod tests {
 
     pub(crate) fn lock() -> std::sync::MutexGuard<'static, ()> {
         LOCK.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    #[test]
+    fn encuentra_las_imagenes_que_faltan() {
+        let dir = test_dir("faltan");
+        std::fs::write(dir.join("esta.png"), "x").unwrap();
+        std::fs::write(dir.join("con espacio.png"), "x").unwrap();
+        let text = "![a](esta.png) ![b](nada.png \"titulo\") ![c](<otra falta.png>) ![d](con%20espacio.png)\n\
+            ![e](https://x.org/a.png) ![f](data:image/png;base64,AAA) <img src=\"html.png\" width=3> <IMG SRC='esta.png'> ![g](nada.png)";
+        let missing = missing_images(text, &dir);
+        assert_eq!(missing, vec!["nada.png", "otra falta.png", "html.png"]);
+        assert!(missing_images("sin imagenes [enlace](x.png)", &dir).is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn convertir_un_md_apunta_las_imagenes_que_faltan() {
+        let _guard = lock();
+        if !tool_exists("pandoc") {
+            return;
+        }
+        let dir = test_dir("md-faltan");
+        std::fs::write(dir.join("doc.md"), "# Hola\n\n![x](no-existe.png)\n").unwrap();
+        convert_blocking(&st(&dir.join("doc.md")), "docx").unwrap();
+        assert_eq!(take_warnings(), vec!["no-existe.png"]);
+        assert!(take_warnings().is_empty());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

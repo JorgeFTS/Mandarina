@@ -20,6 +20,7 @@ pub fn run() {
             converters::get_targets,
             converters::convert,
             converters::get_targets_many,
+            converters::take_warnings,
             converters::convert_many,
             thumbnail::thumbnail,
             wheel::initial_paths,

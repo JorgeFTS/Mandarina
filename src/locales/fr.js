@@ -84,6 +84,8 @@
   "result.skipped.other": "{count} ignorés (déjà en {format})",
   "result.partial": "{ok} sur {total} convertis",
   "result.moreErrors": "et {count} de plus",
+  "result.missingImages.one": "Converti, mais 1 image est introuvable",
+  "result.missingImages.other": "Converti, mais {count} images sont introuvables",
   "result.close": "Fermer",
 
   "error.convert": "Conversion impossible",

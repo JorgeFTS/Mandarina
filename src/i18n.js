@@ -86,6 +86,8 @@
     "result.skipped.other": "{count} skipped (already {format})",
     "result.partial": "{ok} of {total} converted",
     "result.moreErrors": "and {count} more",
+    "result.missingImages.one": "Converted, but 1 image was not found",
+    "result.missingImages.other": "Converted, but {count} images were not found",
     "result.close": "Close",
 
     "error.convert": "Could not convert",
@@ -256,6 +258,8 @@
     "result.skipped.other": "{count} omitidos (ya eran {format})",
     "result.partial": "{ok} de {total} convertidos",
     "result.moreErrors": "y {count} más",
+    "result.missingImages.one": "Convertido, pero no se encontró 1 imagen",
+    "result.missingImages.other": "Convertido, pero no se encontraron {count} imágenes",
     "result.close": "Cerrar",
 
     "error.convert": "No se pudo convertir",
