@@ -2,7 +2,7 @@
 name = "mandarina"
 version = "0.1.0"
 description = "File converter for Linux with a floating radial wheel, launched from Nautilus. Converts images, audio, video, documents and more locally."
-authors = ["Autores de Mandarina"]
+authors = ["JorgeFTS"]
 license = "MIT"
 keywords = ["converter", "ffmpeg", "tauri", "linux", "nautilus"]
 categories = ["multimedia"]
