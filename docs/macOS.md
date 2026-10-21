@@ -29,7 +29,7 @@ npm install
 packaging/macos/build-dmg.sh     # → dist/Mandarina-<version>.dmg and .dmg.sha256
 ```
 
-The script builds a universal app (Apple Silicon + Intel) and puts it in a DMG with `Install Mandarina.command`, `Read Me.txt`, `LICENSE.txt` and the Quick Action (in a hidden `.support/` folder). Publish the `.sha256` file next to the DMG in every release.
+The script builds a universal app (Apple Silicon + Intel) and puts it in a DMG with `Install Mandarina.command`, `Read Me.txt`, `LICENSE.txt` and the Quick Action (in a hidden `.support/` folder). Publish the `.sha256` file next to the DMG in every release. The **macOS DMG** GitHub Actions workflow does both on every `v*` tag (see [[Publishing]]).
 
 ### Signing, quarantine and the installer
 
