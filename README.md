@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-orange.svg"></a>
-  <img alt="Platform: Linux" src="https://img.shields.io/badge/platform-Linux-blue.svg">
+  <img alt="Platform: Linux and macOS (beta)" src="https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20(beta)-blue.svg">
   <img alt="Built with Tauri 2" src="https://img.shields.io/badge/built%20with-Tauri%202-24C8DB.svg">
   <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-lightgrey.svg">
 </p>
@@ -114,6 +114,10 @@ The installer copies a script to `~/.local/share/nautilus/scripts/` and adds the
 
 To build your own `.deb`: `npm run tauri build -- --bundles deb` (it goes to `src-tauri/target/release/bundle/deb/`).
 
+### macOS (beta)
+
+macOS support was contributed by [@justindurazzo](https://github.com/justindurazzo) and is newer than the Linux one: the CI runs `cargo test` on macOS, but there is no ready-made download yet. You build the universal (Apple Silicon + Intel) `.dmg` yourself with `packaging/macos/build-dmg.sh`, open it, and run the installer from Terminal as the Read Me inside explains. The installer copies the app, adds a Finder Quick Action (**Convert with Mandarina**) and offers to install the converters with [Homebrew](https://brew.sh). The app is not signed with an Apple Developer ID nor notarized, so the installer removes the "downloaded from the internet" flag from its own copy; see [docs/macOS.md](docs/macOS.md) for what that means and the manual test checklist.
+
 ### Uninstall
 
 Delete the script from `~/.local/share/nautilus/scripts/` and its line in `~/.config/nautilus/scripts-accels`. If you installed the `.deb`, run `sudo apt remove mandarina`. Your settings are in `~/.config/mandarina/`; delete that folder to remove them too.
@@ -186,7 +190,7 @@ The language applies to the interface, error messages, the names of the files th
 
 - **Wayland:** an application cannot know the cursor position or detect drags or keys such as Shift outside its own window. For that reason the Nautilus script starts the app with `GDK_BACKEND=x11` (XWayland), and the window is placed next to the cursor in two steps. Without `GDK_BACKEND=x11` it is not placed next to the cursor.
 - With **several files**, the wheel only offers the formats that all of them support (for example, 5 images give the image formats; an image and a document only `pdf`, `jpg` and `png`). Files already in that format are skipped, and if one fails the rest keep converting. Folders can be compressed. With several files of any type the wheel always offers ZIP and packs them all into a single `Archive.zip`. The tools wheel is only available with a single file.
-- **Nautilus only.** No integration with other file managers.
+- **File managers:** Nautilus and Nemo on Linux, and a Finder Quick Action on macOS. No integration with Dolphin or Thunar yet.
 - **GNOME 50 can prevent the app from starting.** On GNOME 50, WebKitGTK/GTK 3.24 aborts with `Settings schema 'org.gnome.settings-daemon.plugins.xsettings' does not contain a key named 'antialiasing'`, because GNOME moved those keys to a `.deprecated` schema. This is a system issue, not a Mandarina bug. Local workaround without `sudo`: copy the `xsettings` schema with the `antialiasing`, `hinting` and `rgba-order` keys added, together with `org.gnome.settings-daemon.enums.xml`, to `~/.local/share/glib-2.0/schemas/` and run `glib-compile-schemas` in that folder. Remove it once GNOME fixes it. Details in [docs/Decisions.md](docs/Decisions.md).
 - **VS Code installed as a snap:** if you launch the app from its integrated terminal, it inherits snap environment variables (`GTK_PATH`, `GIO_MODULE_DIR`, `GSETTINGS_SCHEMA_DIR`...) that make WebKitGTK fail. Launch it from another terminal or clear those variables first.
 - Unusual file names, permissions, and very heavy conversions (long videos, huge documents) have not been tested systematically.
@@ -206,6 +210,7 @@ Not verified or pending:
 - Only used on a real desktop with Ubuntu and GNOME 50 (Wayland). No tests on pure X11, on other distributions (the `.deb` does not install on Arch, Fedora or similar) or on other desktop environments.
 - The `.deb` (2.6 MB) does not install the Nautilus script by itself; you run `bash /usr/share/mandarina/install-nautilus.sh`.
 - A Markdown file shows its images only if they are next to it (a missing `assets/` folder means no images in the result, and the app does not warn about it yet).
+- **macOS** is a beta: `cargo test` passes in CI and the Quick Action was tried on Apple Silicon, but a second display and a real Intel Mac are not tested yet (checklist in [docs/macOS.md](docs/macOS.md)). Homebrew's plain `ffmpeg` has no Vorbis encoder, so Mandarina asks for `ffmpeg-full`.
 - Pending: file-action wheels, audio/video playback inside the trim editor, and tools for several files or for documents.
 
 ## Contributing
@@ -218,4 +223,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The technical documentation is in [docs/
 
 ## Acknowledgements
 
-All code, design and the icon are original. Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.
+All code, design and the icon are original, and the macOS support was contributed by [@justindurazzo](https://github.com/justindurazzo). Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.
