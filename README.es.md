@@ -65,6 +65,15 @@ Además de los formatos, la [rueda de herramientas](#herramientas) puede reducir
 
 ## Instalación
 
+Cada [release](https://github.com/JorgeFTS/Mandarina/releases/tag/v0.1.1-beta) trae un paquete por sistema:
+
+| Sistema | Archivo | Compruébalo con |
+|---|---|---|
+| Linux (Debian, Ubuntu, Linux Mint) | `Mandarina_0.1.1_amd64.deb` | `SHA256SUMS` |
+| macOS (Apple Silicon e Intel, beta) | `Mandarina-0.1.1.dmg` | `Mandarina-0.1.1.dmg.sha256` |
+
+`SHA256SUMS` lista los dos archivos, así que si descargaste solo uno, ejecuta `sha256sum -c --ignore-missing SHA256SUMS`. Los pasos para Linux están abajo; para macOS mira [macOS (beta)](#macos-beta).
+
 Copia y pega cada bloque en una terminal.
 
 ### Debian, Ubuntu, Linux Mint y derivadas (recomendado)

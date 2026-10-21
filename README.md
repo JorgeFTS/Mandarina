@@ -65,6 +65,15 @@ Beyond formats, the [tools wheel](#tools) can reduce size, strip metadata, trim,
 
 ## Installation
 
+Each [release](https://github.com/JorgeFTS/Mandarina/releases/tag/v0.1.1-beta) has one package per system:
+
+| System | File | Check it with |
+|---|---|---|
+| Linux (Debian, Ubuntu, Linux Mint) | `Mandarina_0.1.1_amd64.deb` | `SHA256SUMS` |
+| macOS (Apple Silicon and Intel, beta) | `Mandarina-0.1.1.dmg` | `Mandarina-0.1.1.dmg.sha256` |
+
+`SHA256SUMS` lists both files, so if you downloaded only one, run `sha256sum -c --ignore-missing SHA256SUMS`. The Linux steps are below; for macOS see [macOS (beta)](#macos-beta).
+
 Copy and paste each block into a terminal.
 
 ### Debian, Ubuntu, Linux Mint and derivatives (recommended)
