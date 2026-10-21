@@ -1,6 +1,6 @@
 # Manual testing
 
-A checklist to try Mandarina in the real window before publishing a version. The automatic tests (`cargo test`) cover the logic; this covers what is only seen with the app open. Related: [[Wheel]], [[Tools]], [[Settings]], [[Languages]], [[Nautilus]], [[Publishing]].
+A checklist to try Mandarina in the real window before publishing a version. The automatic tests (`cargo test`) cover the logic; this covers what is only seen with the app open. Related: [[Wheel]], [[Tools]], [[Settings]], [[Languages]], [[Nautilus]], [[Publishing]]. On macOS, use the checklist in [[macOS]].
 
 Tick each box as you try it and note below what happened if something fails. Boxes marked **(already seen)** have evidence from an earlier session.
 
