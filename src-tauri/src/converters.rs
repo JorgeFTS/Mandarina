@@ -217,6 +217,8 @@ fn brew_hint(hint: &str) -> String {
     let mapped: Vec<&str> = packages
         .split_whitespace()
         .map(|p| match p {
+            // Homebrew's ffmpeg has no libvorbis, which OGG needs
+            "ffmpeg" => "ffmpeg-full",
             "libreoffice" => "--cask libreoffice",
             "poppler-utils" => "poppler",
             "librsvg2-bin" => "librsvg",
@@ -1945,6 +1947,15 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         );
         // With several options it is enough that one exists
         assert_eq!(need(&["herramienta_que_no_existe", "sh"], "x"), Ok("sh".to_string()));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn pistas_de_homebrew() {
+        assert_eq!(brew_hint("sudo apt install ffmpeg"), "brew install ffmpeg-full");
+        assert_eq!(brew_hint("sudo apt install poppler-utils librsvg2-bin"), "brew install poppler librsvg");
+        assert_eq!(brew_hint("sudo apt install libreoffice"), "brew install --cask libreoffice");
+        assert_eq!(brew_hint("pip install x"), "pip install x");
     }
 
     #[test]

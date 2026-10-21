@@ -60,7 +60,15 @@ fn extend_path_macos() {
         dirs.push(home.join(".local/bin"));
         dirs.push(home.join("Applications/LibreOffice.app/Contents/MacOS"));
     }
-    for dir in ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/Applications/LibreOffice.app/Contents/MacOS"] {
+    // ffmpeg-full is keg-only (Homebrew does not link it into bin), so its folder goes first
+    for dir in [
+        "/opt/homebrew/opt/ffmpeg-full/bin",
+        "/usr/local/opt/ffmpeg-full/bin",
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/opt/local/bin",
+        "/Applications/LibreOffice.app/Contents/MacOS",
+    ] {
         dirs.push(dir.into());
     }
     let current = std::env::var_os("PATH").unwrap_or_default();

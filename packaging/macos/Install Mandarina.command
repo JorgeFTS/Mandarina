@@ -31,10 +31,11 @@ xattr -dr com.apple.quarantine "$HOME/Library/Services/Convert with Mandarina.wo
 /System/Library/CoreServices/pbs -update 2>/dev/null || true
 
 # 3. Converters (Mandarina drives these tools; each one unlocks some formats)
-for d in /opt/homebrew/bin /usr/local/bin; do [ -d "$d" ] && PATH="$d:$PATH"; done
+for d in /usr/local/bin /opt/homebrew/bin /usr/local/opt/ffmpeg-full/bin /opt/homebrew/opt/ffmpeg-full/bin; do [ -d "$d" ] && PATH="$d:$PATH"; done
 missing=()
 have() { command -v "$1" >/dev/null 2>&1; }
-have ffmpeg || missing+=(ffmpeg)
+# Homebrew's plain ffmpeg has no Vorbis encoder (OGG); ffmpeg-full has every codec Mandarina uses
+{ have ffmpeg && ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libvorbis; } || missing+=(ffmpeg-full)
 have magick || missing+=(imagemagick)
 have pandoc || missing+=(pandoc)
 have pdftoppm || missing+=(poppler)
@@ -49,7 +50,7 @@ if [ ${#missing[@]} -eq 0 ] && [ $need_lo -eq 0 ]; then
     echo "✓ All converters are already installed."
 elif have brew; then
     echo "Some converters are missing: ${missing[*]}$([ $need_lo -eq 1 ] && echo " libreoffice")"
-    echo "  ffmpeg = audio/video · imagemagick = images · pandoc = documents"
+    echo "  ffmpeg-full = audio/video · imagemagick = images · pandoc = documents"
     echo "  poppler/ghostscript = PDF · librsvg = SVG · sevenzip = RAR · libreoffice = Office files"
     read -r -p "Install them now with Homebrew? [Y/n] " answer
     if [[ ! "$answer" =~ ^[Nn] ]]; then
@@ -60,7 +61,7 @@ else
     echo "Mandarina needs a few free converters, installed with Homebrew (https://brew.sh)."
     echo "Install Homebrew, then run:"
     echo ""
-    echo "  brew install ffmpeg imagemagick pandoc poppler ghostscript librsvg sevenzip"
+    echo "  brew install ffmpeg-full imagemagick pandoc poppler ghostscript librsvg sevenzip"
     echo "  brew install --cask libreoffice"
     echo ""
     echo "(Without them Mandarina still opens, and tells you which tool a format needs.)"
