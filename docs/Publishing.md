@@ -43,6 +43,10 @@ The release `v0.1.0-beta` exists as a private **draft** on GitHub with the `.deb
 
 The `.deb` only serves Debian, Ubuntu and derivatives. Planned, in this order: a `PKGBUILD` for Arch, CachyOS and Manjaro (with `sudo pacman -S` in the missing-tool messages), then an AppImage, which also covers Fedora and openSUSE. Nemo is done (see [[Nautilus]]); Dolphin and Thunar integration is left until someone asks. Nothing of this is done.
 
+### macOS
+
+`packaging/macos/build-dmg.sh` builds the universal DMG and its checksum file (`dist/Mandarina-<version>.dmg` and `.dmg.sha256`). Upload both to the release (`gh release upload <tag> dist/Mandarina-<version>.dmg dist/Mandarina-<version>.dmg.sha256`) and add the same line to `SHA256SUMS`: the app is not notarized, and the DMG's Read Me asks users to check the checksum before running the installer. Details in [[macOS]].
+
 ## Untested
 
 - Running the app from the applications menu of a real desktop (the `.deb` was installed on a real Ubuntu one and tried in clean containers, see below).
@@ -59,3 +63,5 @@ Installing the recommended packages in an empty system downloads about **620 MB 
 ## Continuous integration
 
 `.github/workflows/tests.yml` runs `cargo test` on every push to `main` and on every pull request (Ubuntu 24.04). It installs the WebKitGTK libraries Tauri needs and all the conversion tools (ffmpeg, ImageMagick, pandoc, poppler, ghostscript, zip, 7z and LibreOffice), because the integration tests skip themselves when a tool is missing and would otherwise pass without testing anything. It does not build the `.deb` nor open a window; that stays in [[Manual-Testing]].
+
+A second job, `cargo-test-macos`, runs the same `cargo test` on `macos-latest` (Apple Silicon) with the tools from Homebrew and LibreOffice from its cask, so the `#[cfg(target_os = "macos")]` code is compiled and tested too. See [[macOS]].

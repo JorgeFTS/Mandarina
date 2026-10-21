@@ -99,7 +99,15 @@ pub fn show_wheel(app: AppHandle) {
         // set_fullscreen is not used: that mode is managed by the compositor (it hides the top bar,
         // animates the workspace change) and the flicker of that transition would be noticeable on
         // every use. When moving and resizing the window by hand, the compositor does not intervene.
-        if let Some(monitor) = window.primary_monitor().ok().flatten() {
+        #[cfg(target_os = "macos")]
+        let monitor = app
+            .cursor_position()
+            .ok()
+            .and_then(|c| window.monitor_from_point(c.x, c.y).ok().flatten())
+            .or_else(|| window.primary_monitor().ok().flatten());
+        #[cfg(not(target_os = "macos"))]
+        let monitor = window.primary_monitor().ok().flatten();
+        if let Some(monitor) = monitor {
             let pos = monitor.position();
             let size = monitor.size();
             let _ = window.set_position(PhysicalPosition::new(pos.x, pos.y));
@@ -144,9 +152,34 @@ pub async fn place_wheel(app: AppHandle, x: f64, y: f64) {
     };
     let (mpos, msize) = (monitor.position(), monitor.size());
     let side = (460.0 * scale).round() as i32;
-    let (cx, cy) = (mpos.x + (x * scale) as i32, mpos.y + (y * scale) as i32);
+    // macOS keeps windows below the menu bar, so the page origin is the window's, not the monitor's
+    #[cfg(target_os = "macos")]
+    let origin = window.inner_position().map(|p| (p.x, p.y)).unwrap_or((mpos.x, mpos.y));
+    #[cfg(not(target_os = "macos"))]
+    let origin = (mpos.x, mpos.y);
+    let (cx, cy) = (origin.0 + (x * scale) as i32, origin.1 + (y * scale) as i32);
     let (wx, wy) = clamp_to_monitor(cx, cy, side, side, mpos.x, mpos.y, msize.width as i32, msize.height as i32);
     resize_and_move(&window, 460.0, 460.0, wx, wy);
+}
+
+// Cursor in page pixels, when the platform can tell (macOS). On Linux/Wayland it returns None
+// and the page waits for the first mouse event instead; on macOS that event only arrives once
+// the mouse moves, so the wheel would otherwise open in the center of the screen.
+#[tauri::command]
+pub fn cursor_in_window(app: AppHandle) -> Option<(f64, f64)> {
+    #[cfg(target_os = "macos")]
+    {
+        let window = app.get_webview_window("main")?;
+        let cursor = app.cursor_position().ok()?;
+        let origin = window.inner_position().ok()?;
+        let scale = window.scale_factor().unwrap_or(1.0);
+        Some(((cursor.x - origin.x as f64) / scale, (cursor.y - origin.y as f64) / scale))
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        None
+    }
 }
 
 // Puts the window (460x460) in the center of the monitor. Used for the message cards
@@ -260,6 +293,8 @@ mod tests {
     fn rutas_iniciales_desde_argumentos() {
         let dir = std::env::temp_dir().join(format!("mandarina_w_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
+        // Real path: on macOS the temp dir lives behind the /var -> /private/var symlink
+        let dir = dir.canonicalize().unwrap();
         let file = dir.join("a.txt");
         let other = dir.join("b b.txt");
         std::fs::write(&file, b"x").unwrap();

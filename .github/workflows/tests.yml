@@ -28,3 +28,26 @@ jobs:
       - name: cargo test
         working-directory: src-tauri
         run: cargo test
+
+  cargo-test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install conversion tools
+        run: |
+          # ffmpeg-full: Homebrew's ffmpeg has no libvorbis (OGG); it is keg-only, so its bin goes on PATH
+          brew install ffmpeg-full imagemagick librsvg pandoc poppler ghostscript sevenzip
+          brew install --cask libreoffice
+          echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
+          echo "/Applications/LibreOffice.app/Contents/MacOS" >> "$GITHUB_PATH"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test

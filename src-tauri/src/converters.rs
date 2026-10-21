@@ -203,7 +203,30 @@ pub(crate) fn need(names: &[&str], hint: &str) -> Result<String, String> {
             return Ok(name.to_string());
         }
     }
+    #[cfg(target_os = "macos")]
+    let hint = &brew_hint(hint);
     Err(tr!("{name} not found. Install it with: {hint}", "No se encontró {name}. Instálalo con: {hint}", name = names[0], hint = hint))
+}
+
+// The hints are written for apt; on macOS they become the Homebrew equivalent
+#[cfg(target_os = "macos")]
+fn brew_hint(hint: &str) -> String {
+    let Some(packages) = hint.strip_prefix("sudo apt install ") else {
+        return hint.to_string();
+    };
+    let mapped: Vec<&str> = packages
+        .split_whitespace()
+        .map(|p| match p {
+            // Homebrew's ffmpeg has no libvorbis, which OGG needs
+            "ffmpeg" => "ffmpeg-full",
+            "libreoffice" => "--cask libreoffice",
+            "poppler-utils" => "poppler",
+            "librsvg2-bin" => "librsvg",
+            "7zip" | "p7zip-full" => "sevenzip",
+            other => other,
+        })
+        .collect();
+    format!("brew install {}", mapped.join(" "))
 }
 
 fn run(program: &str, args: &[&str]) -> Result<(), String> {
@@ -1717,6 +1740,40 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    // Cancelling a LibreOffice conversion must kill soffice and everything it launched (on Linux and
+    // macOS kill_group runs "kill -KILL -- -<pgid>"; BSD kill accepts "--" too) and leave no output
+    #[test]
+    fn cancelar_libreoffice_no_deja_procesos() {
+        let _guard = lock();
+        if !tool_exists("soffice") && !tool_exists("libreoffice") {
+            return;
+        }
+        let dir = test_dir("cancela_libreoffice");
+        let csv = dir.join("datos.csv");
+        let rows: String = (0..20000).map(|i| format!("{i},fila {i},{}\n", i * 7)).collect();
+        std::fs::write(&csv, rows).unwrap();
+        CANCEL.store(false, Ordering::SeqCst);
+        let canceller = std::thread::spawn(|| {
+            std::thread::sleep(Duration::from_millis(700));
+            CANCEL.store(true, Ordering::SeqCst);
+        });
+        let start = std::time::Instant::now();
+        let result = convert_blocking(csv.to_str().unwrap(), "pdf");
+        canceller.join().unwrap();
+        CANCEL.store(false, Ordering::SeqCst);
+        assert_eq!(result, Err("[cancelled] Cancelled".to_string()));
+        assert!(start.elapsed() < Duration::from_secs(10));
+        assert!(!dir.join("datos.pdf").exists(), "queda una salida a medias");
+        if tool_exists("pgrep") {
+            // soffice runs with a profile inside our temporary folder: mandarina_tmp_<pid>_<n>
+            std::thread::sleep(Duration::from_millis(300));
+            let pattern = format!("mandarina_tmp_{}_", std::process::id());
+            let found = Command::new("pgrep").args(["-f", &pattern]).output().unwrap();
+            assert!(found.stdout.is_empty(), "queda un proceso de LibreOffice");
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn run_se_cancela_y_mata_al_hijo() {
         let _guard = lock();
@@ -1877,14 +1934,28 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
+    #[cfg(target_os = "macos")]
+    const HINT_X: &str = "brew install x";
+    #[cfg(not(target_os = "macos"))]
+    const HINT_X: &str = "sudo apt install x";
+
     #[test]
     fn avisa_si_falta_una_herramienta() {
         assert_eq!(
             need(&["herramienta_que_no_existe"], "sudo apt install x"),
-            Err("herramienta_que_no_existe not found. Install it with: sudo apt install x".to_string())
+            Err(format!("herramienta_que_no_existe not found. Install it with: {}", HINT_X))
         );
         // With several options it is enough that one exists
         assert_eq!(need(&["herramienta_que_no_existe", "sh"], "x"), Ok("sh".to_string()));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn pistas_de_homebrew() {
+        assert_eq!(brew_hint("sudo apt install ffmpeg"), "brew install ffmpeg-full");
+        assert_eq!(brew_hint("sudo apt install poppler-utils librsvg2-bin"), "brew install poppler librsvg");
+        assert_eq!(brew_hint("sudo apt install libreoffice"), "brew install --cask libreoffice");
+        assert_eq!(brew_hint("pip install x"), "pip install x");
     }
 
     #[test]
@@ -2442,7 +2513,7 @@ trailer<</Root 1 0 R/Size 6>>\n%%EOF\n";
         assert_eq!(many(&[xyz.to_string()]).unwrap().failed[0].error, "Tipo de archivo no soportado");
         assert_eq!(
             need(&["herramienta_que_no_existe"], "sudo apt install x"),
-            Err("No se encontró herramienta_que_no_existe. Instálalo con: sudo apt install x".to_string())
+            Err(format!("No se encontró herramienta_que_no_existe. Instálalo con: {}", HINT_X))
         );
         assert_eq!(cancelled_run(), Err("[cancelled] Cancelado".to_string()));
         crate::lang::set_lang(crate::lang::Lang::En);
