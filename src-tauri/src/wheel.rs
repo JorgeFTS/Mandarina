@@ -72,13 +72,41 @@ fn clamp_to_monitor(cx: i32, cy: i32, w: i32, h: i32, mx: i32, my: i32, mw: i32,
     (x, y)
 }
 
+// Files that macOS delivered through Finder's "Open With" (an Apple Event, not argv). See lib.rs.
+static OPENED: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(Vec::new());
+
+// Files the app was launched with: the arguments plus, on macOS, those received through "Open With"
+fn launch_paths() -> Vec<PathBuf> {
+    let args: Vec<String> = std::env::args().collect();
+    let mut paths = paths_from_args(&args);
+    for path in OPENED.lock().map(|o| o.clone()).unwrap_or_default() {
+        if !paths.contains(&path) {
+            paths.push(path);
+        }
+    }
+    paths
+}
+
+// Keeps the files of an "Open With" event (only those that exist, without repeats) and returns the
+// new ones, which the caller forwards to the page in case it had already started without files
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) fn add_opened(paths: Vec<PathBuf>) -> Vec<String> {
+    let Ok(mut opened) = OPENED.lock() else {
+        return Vec::new();
+    };
+    let mut new = Vec::new();
+    for path in paths {
+        if path.exists() && !opened.contains(&path) {
+            new.push(path.to_string_lossy().to_string());
+            opened.push(path);
+        }
+    }
+    new
+}
+
 #[tauri::command]
 pub fn initial_paths() -> Vec<String> {
-    let args: Vec<String> = std::env::args().collect();
-    paths_from_args(&args)
-        .iter()
-        .map(|p| p.to_string_lossy().to_string())
-        .collect()
+    launch_paths().iter().map(|p| p.to_string_lossy().to_string()).collect()
 }
 
 #[tauri::command]
@@ -91,8 +119,7 @@ pub fn show_wheel(app: AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
-    let args: Vec<String> = std::env::args().collect();
-    if !paths_from_args(&args).is_empty() {
+    if !launch_paths().is_empty() {
         // With files the window starts enlarged by hand until it covers the monitor: on Wayland
         // the app cannot know where the cursor is, but the page does receive it as soon as the
         // window appears under it. Then the interface calls place_wheel to shrink it.
@@ -287,6 +314,20 @@ mod tests {
         assert_eq!(fit_to_monitor(780.0, 640.0, 1920.0, 500.0, 24.0), (780.0, 452.0));
         // Tiny monitor: never less than 100
         assert_eq!(fit_to_monitor(780.0, 640.0, 50.0, 50.0, 24.0), (100.0, 100.0));
+    }
+
+    #[test]
+    fn abrir_con_guarda_solo_lo_nuevo_que_existe() {
+        let dir = std::env::temp_dir().join(format!("mandarina_open_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("a b.txt");
+        std::fs::write(&file, "x").unwrap();
+        let missing = dir.join("no existe.txt");
+        assert_eq!(add_opened(vec![file.clone(), missing, file.clone()]), vec![file.to_string_lossy().to_string()]);
+        // The same file again is not new
+        assert!(add_opened(vec![file.clone()]).is_empty());
+        assert!(launch_paths().contains(&file));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
