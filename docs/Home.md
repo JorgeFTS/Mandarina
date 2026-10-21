@@ -8,6 +8,7 @@ Map of the notes. Open the `docs/` folder as a vault in Obsidian to see the grap
 - [[Tauri-Commands]]: Rust functions that the JS calls.
 - [[Tools]]: the second wheel (reduce size, trim, metadata, rotate...).
 - [[Nautilus]]: right click, and how to build the standalone binary.
+- [[macOS]]: Finder Quick Action, the DMG installer, signing, and the macOS test checklist.
 - [[Decisions]]: why each thing was chosen.
 - [[Settings]]: the formats shown by the wheel, language and accent color, chosen by the user.
 - [[Languages]]: English by default plus Spanish, Portuguese and French; how it is chosen and what is translated.

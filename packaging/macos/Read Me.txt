@@ -1,0 +1,39 @@
+MANDARINA FOR macOS 🍊
+File converter with a floating radial wheel. Right-click a file in Finder, pick
+a format, and the converted copy appears next to the original. Everything runs
+on your Mac; nothing is uploaded.
+
+
+INSTALL
+
+1. Optional but recommended: check the download against the published checksum.
+   In Terminal:   shasum -a 256 ~/Downloads/Mandarina-<version>.dmg
+   It must match the .sha256 file published with the release.
+2. Open Terminal (Applications > Utilities > Terminal), type  bash  and a space,
+   drag "Install Mandarina.command" from this window into Terminal, press Return.
+3. If it offers to install the converters with Homebrew, say yes.
+
+Why bash and not double-click: the app and the script are not signed with an
+Apple Developer ID, so macOS blocks double-clicking them. (You can also
+double-click and then use System Settings > Privacy & Security > Open Anyway.)
+
+What the installer does:
+  - copies Mandarina.app to /Applications (or ~/Applications)
+  - removes the "downloaded from the internet" quarantine flag from that copy,
+    so macOS opens it without the "damaged / unidentified developer" warning.
+    This is the same as choosing "Open Anyway"; only do it if the checksum matched.
+  - adds the Finder Quick Action "Convert with Mandarina"
+  - offers to install the converters (ffmpeg, ImageMagick, pandoc, poppler,
+    ghostscript, librsvg, 7-Zip, LibreOffice) with Homebrew
+
+Works on Apple Silicon and Intel Macs, macOS 11 or later.
+
+
+USE
+
+Select one or more files in Finder > right-click > Quick Actions >
+Convert with Mandarina. Optional shortcut: System Settings > Keyboard >
+Keyboard Shortcuts > Services > Files and Folders > Convert with Mandarina.
+
+
+Mandarina: https://github.com/JorgeFTS/Mandarina (MIT, see LICENSE.txt)

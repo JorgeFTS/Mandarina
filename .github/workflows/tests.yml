@@ -28,3 +28,24 @@ jobs:
       - name: cargo test
         working-directory: src-tauri
         run: cargo test
+
+  cargo-test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install conversion tools
+        run: |
+          brew install ffmpeg imagemagick librsvg pandoc poppler ghostscript sevenzip
+          brew install --cask libreoffice
+          echo "/Applications/LibreOffice.app/Contents/MacOS" >> "$GITHUB_PATH"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test
