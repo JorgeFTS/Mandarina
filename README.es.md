@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="Licencia: MIT" src="https://img.shields.io/badge/licencia-MIT-orange.svg"></a>
   <img alt="Plataforma: Linux y macOS (beta)" src="https://img.shields.io/badge/plataforma-Linux%20%7C%20macOS%20(beta)-blue.svg">
   <img alt="Hecho con Tauri 2" src="https://img.shields.io/badge/hecho%20con-Tauri%202-24C8DB.svg">
-  <img alt="Versión 0.1.0" src="https://img.shields.io/badge/versi%C3%B3n-0.1.0-lightgrey.svg">
+  <img alt="Versión 0.1.1" src="https://img.shields.io/badge/versi%C3%B3n-0.1.1-lightgrey.svg">
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@ Seleccionas uno o varios archivos en Nautilus, pulsas un atajo o haces clic dere
   <img src="docs/images/mandarina-demo.gif" alt="Demostración: seleccionar un archivo en Nautilus, pulsar Alt+M, elegir un formato en la rueda y ver el archivo convertido junto al original" width="720">
 </p>
 
-> **Estado: beta (versión 0.1.0).** Funciona y el `.deb` se probó en sistemas limpios de Debian y Ubuntu, pero la app solo se ha usado en un escritorio real con Ubuntu y GNOME. Lee [Estado del proyecto](#estado-del-proyecto) antes de usarlo.
+> **Estado: beta (versión 0.1.1).** Funciona y el `.deb` se probó en sistemas limpios de Debian y Ubuntu, pero la app solo se ha usado en un escritorio real con Ubuntu y GNOME. Lee [Estado del proyecto](#estado-del-proyecto) antes de usarlo.
 
 ## ¿Qué puede convertir?
 
@@ -117,7 +117,7 @@ Para crear tu propio `.deb`: `npm run tauri build -- --bundles deb` (queda en `s
 
 ### macOS (beta)
 
-El soporte para macOS lo aportó [@justindurazzo](https://github.com/justindurazzo) y es más nuevo que el de Linux: el CI ejecuta `cargo test` en macOS. Para una descarga lista, usa **[Satsuma](https://github.com/justindurazzo/satsuma/releases/latest)**, el port de Mandarina para macOS que mantiene el mismo colaborador. Lo publica y mantiene él, no este proyecto, así que los problemas de ese DMG repórtalos en [su repositorio](https://github.com/justindurazzo/satsuma/issues). Si prefieres compilarlo tú, `packaging/macos/build-dmg.sh` genera el `.dmg` universal (Apple Silicon + Intel). En ambos casos abres el `.dmg` y ejecutas el instalador desde la Terminal como explica el Léeme de su interior. El instalador copia la app, añade una Acción rápida de Finder (**Convert with Mandarina**) y ofrece instalar los conversores con [Homebrew](https://brew.sh). La app no está firmada con un Apple Developer ID ni notarizada, así que el instalador quita de su propia copia la marca de "descargado de internet"; en [docs/macOS.md](docs/macOS.md) (en inglés) se explica qué significa eso y está la lista de pruebas manuales.
+El soporte para macOS lo aportó [@justindurazzo](https://github.com/justindurazzo) y es más nuevo que el de Linux: el CI ejecuta `cargo test` en macOS. Para una descarga lista, usa el `.dmg` universal (Apple Silicon + Intel) de la [última release para macOS](https://github.com/JorgeFTS/Mandarina/releases/tag/v0.1.1-beta), que construye GitHub Actions con cada tag `v*`; compruébalo con el archivo `.sha256` que está a su lado. [Satsuma](https://github.com/justindurazzo/satsuma/releases/latest) es una alternativa: el port de Mandarina para macOS que mantiene el mismo colaborador, publicado por él y no por este proyecto, así que los problemas de ese DMG repórtalos en [su repositorio](https://github.com/justindurazzo/satsuma/issues). Para compilarlo tú, `packaging/macos/build-dmg.sh` genera el mismo `.dmg`. En todos los casos abres el `.dmg` y ejecutas el instalador desde la Terminal como explica el Léeme de su interior. El instalador copia la app, añade una Acción rápida de Finder (**Convert with Mandarina**; la app también aparece en el menú **Abrir con** de Finder) y ofrece instalar los conversores con [Homebrew](https://brew.sh). La app no está firmada con un Apple Developer ID ni notarizada, así que el instalador quita de su propia copia la marca de "descargado de internet"; los ajustes se guardan en `~/Library/Application Support/mandarina/`. En [docs/macOS.md](docs/macOS.md) (en inglés) se explica qué significa que no esté notarizada y está la lista de pruebas manuales.
 
 ### Desinstalar
 
@@ -211,7 +211,7 @@ No verificado o pendiente:
 - Solo se ha usado en un escritorio real con Ubuntu y GNOME 50 (Wayland). No hay pruebas en X11 puro, en otras distribuciones (el `.deb` no se instala en Arch, Fedora ni similares) ni en otros entornos de escritorio.
 - El `.deb` (2,6 MB) no instala el script de Nautilus por sí solo; ejecutas `bash /usr/share/mandarina/install-nautilus.sh`.
 - Un archivo Markdown muestra sus imágenes solo si están junto a él (si falta la carpeta `assets/`, el resultado sale sin imágenes y la app todavía no lo avisa).
-- **macOS** está en beta: `cargo test` pasa en el CI y la Acción rápida se probó en Apple Silicon, pero todavía no se ha probado un segundo monitor ni un Mac Intel real (lista en [docs/macOS.md](docs/macOS.md)). El `ffmpeg` normal de Homebrew no trae el codificador Vorbis, así que Mandarina pide `ffmpeg-full`.
+- **macOS** está en beta: `cargo test` pasa en el CI y la Acción rápida se probó en Apple Silicon y Abrir con solo abriendo un archivo desde la línea de comandos, pero todavía no se ha probado un segundo monitor ni un Mac Intel real (lista en [docs/macOS.md](docs/macOS.md)). El `ffmpeg` normal de Homebrew no trae el codificador Vorbis, así que Mandarina pide `ffmpeg-full`.
 - Pendiente: ruedas de acciones de archivo, reproducir audio y vídeo dentro del editor de recorte, y herramientas para varios archivos o para documentos.
 
 ## Contribuir
