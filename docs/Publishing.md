@@ -45,7 +45,7 @@ The `.deb` only serves Debian, Ubuntu and derivatives. Planned, in this order: a
 
 ### macOS
 
-`packaging/macos/build-dmg.sh` builds the universal DMG and its checksum file (`dist/Mandarina-<version>.dmg` and `.dmg.sha256`). Upload both to the release (`gh release upload <tag> dist/Mandarina-<version>.dmg dist/Mandarina-<version>.dmg.sha256`) and add the same line to `SHA256SUMS`: the app is not notarized, and the DMG's Read Me asks users to check the checksum before running the installer. Details in [[macOS]].
+The **macOS DMG** workflow (`.github/workflows/release-macos.yml`) builds it on a Mac runner whenever a `v*` tag is pushed. It attaches `Mandarina-<version>.dmg` and its `.sha256` to the tag's release. If the release has no notes yet, it creates a draft. If the release has a `SHA256SUMS`, the workflow replaces the DMG line in it. To build for a tag that already exists, use Actions → macOS DMG → Run workflow. The tag has to include `packaging/macos`, which means it was made after the macOS merge. To build by hand on a Mac instead, run `packaging/macos/build-dmg.sh`, which writes `dist/Mandarina-<version>.dmg` and `.dmg.sha256`, then upload both with `gh release upload`. The app is not notarized, and the DMG's Read Me asks users to check the checksum before running the installer. Details in [[macOS]].
 
 ## Untested
 

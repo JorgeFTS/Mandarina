@@ -1,0 +1,60 @@
+name: macOS DMG
+
+# Builds the universal DMG on a Mac runner and attaches it, with its .sha256, to the GitHub release
+# of the tag. Runs on every pushed version tag, or by hand (Actions → macOS DMG → Run workflow) for
+# a tag that already exists.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build (for example v0.1.0-beta)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Build the DMG
+        run: |
+          npm ci
+          packaging/macos/build-dmg.sh
+          lipo -archs src-tauri/target/universal-apple-darwin/release/bundle/macos/Mandarina.app/Contents/MacOS/mandarina
+
+      - name: Attach to the release
+        run: |
+          # A release made by hand keeps its title and notes; if there is none yet, a draft is created
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --draft --verify-tag --title "Mandarina $TAG" --notes ""
+          gh release upload "$TAG" dist/Mandarina-*.dmg dist/Mandarina-*.dmg.sha256 --clobber
+
+          # Keep SHA256SUMS (if the release has one) in step: replace the DMG line, keep the rest
+          if gh release download "$TAG" -p SHA256SUMS -D sums 2>/dev/null; then
+            grep -v '\.dmg$' sums/SHA256SUMS > SHA256SUMS || true
+            cat dist/Mandarina-*.dmg.sha256 >> SHA256SUMS
+            gh release upload "$TAG" SHA256SUMS --clobber
+          fi
