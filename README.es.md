@@ -60,6 +60,7 @@ Además de los formatos, la [rueda de herramientas](#herramientas) puede reducir
 - [Limitaciones y problemas conocidos](#limitaciones-y-problemas-conocidos)
 - [Estado del proyecto](#estado-del-proyecto)
 - [Contribuir](#contribuir)
+- [Colaboradores](#colaboradores)
 - [Licencia](#licencia)
 
 ## Instalación
@@ -217,10 +218,14 @@ No verificado o pendiente:
 
 Ver [CONTRIBUTING.md](CONTRIBUTING.md) (en inglés). La documentación técnica está en [docs/](docs/Home.md) (en inglés): una nota corta por módulo.
 
+## Colaboradores
+
+- [@justindurazzo](https://github.com/justindurazzo): soporte para macOS (Acción rápida de Finder, instalador DMG, CI en macOS) y el port [Satsuma](https://github.com/justindurazzo/satsuma).
+
 ## Licencia
 
 [MIT](LICENSE). Puedes usar, copiar, modificar y distribuir Mandarina, siempre que conserves el aviso de copyright.
 
 ## Agradecimientos
 
-Todo el código, el diseño y el icono son propios, y el soporte para macOS lo aportó [@justindurazzo](https://github.com/justindurazzo). Construida con [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice y poppler.
+Todo el código, el diseño y el icono son propios. Construida con [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice y poppler.

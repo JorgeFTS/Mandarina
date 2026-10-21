@@ -60,6 +60,7 @@ Beyond formats, the [tools wheel](#tools) can reduce size, strip metadata, trim,
 - [Limitations and known issues](#limitations-and-known-issues)
 - [Project status](#project-status)
 - [Contributing](#contributing)
+- [Contributors](#contributors)
 - [License](#license)
 
 ## Installation
@@ -217,10 +218,14 @@ Not verified or pending:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). The technical documentation is in [docs/](docs/Home.md): one short note per module.
 
+## Contributors
+
+- [@justindurazzo](https://github.com/justindurazzo): macOS support (Finder Quick Action, DMG installer, CI on macOS) and the [Satsuma](https://github.com/justindurazzo/satsuma) port.
+
 ## License
 
 [MIT](LICENSE). You can use, copy, modify and distribute Mandarina, as long as you keep the copyright notice.
 
 ## Acknowledgements
 
-All code, design and the icon are original, and the macOS support was contributed by [@justindurazzo](https://github.com/justindurazzo). Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.
+All code, design and the icon are original. Built with [Tauri](https://tauri.app), ffmpeg, ImageMagick, pandoc, LibreOffice and poppler.
