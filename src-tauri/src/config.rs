@@ -1,5 +1,5 @@
 // User settings: the formats the wheel shows, the language and the color. See docs/Settings.md.
-// They are saved in ~/.config/mandarina/config.json; with no file, or with invalid data, the usual
+// They are saved in ~/.config/mandarina/config.json (macOS: ~/Library/Application Support/mandarina); with no file, or with invalid data, the usual
 // lists from converters.rs are used.
 use crate::converters::{type_targets, Kind};
 use crate::lang::{Lang, LANGUAGES};
@@ -111,12 +111,33 @@ fn check_accent(value: &str) -> Result<String, String> {
 // ---------- Archivo ----------
 
 fn config_path() -> PathBuf {
+    #[cfg(target_os = "macos")]
+    if std::env::var_os("MANDARINA_CONFIG_DIR").is_none() {
+        if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+            let path = home.join("Library/Application Support/mandarina/config.json");
+            migrate_legacy(&path, &home.join(".config/mandarina/config.json"));
+            return path;
+        }
+    }
     let base = std::env::var_os("MANDARINA_CONFIG_DIR")
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()).map(|v| PathBuf::from(v).join("mandarina")))
         .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config").join("mandarina")))
         .unwrap_or_else(|| PathBuf::from("."));
     base.join("config.json")
+}
+
+// macOS keeps settings in ~/Library/Application Support. A config saved by an earlier version in
+// ~/.config/mandarina is copied there once, so the user's formats, language and color are kept.
+#[cfg(any(target_os = "macos", test))]
+fn migrate_legacy(path: &Path, legacy: &Path) {
+    if path.exists() || !legacy.is_file() {
+        return;
+    }
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::copy(legacy, path);
 }
 
 // A missing or broken file must not stop the app from opening: the default values are used
@@ -259,6 +280,26 @@ pub fn reset_formats(kind: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn copia_la_config_antigua_una_vez() {
+        let dir = std::env::temp_dir().join(format!("mandarina_mig_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let legacy = dir.join("old").join("config.json");
+        let path = dir.join("new").join("sub").join("config.json");
+        // Nothing to copy: nothing is created
+        migrate_legacy(&path, &legacy);
+        assert!(!path.exists());
+        std::fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        std::fs::write(&legacy, r#"{"language":"es"}"#).unwrap();
+        migrate_legacy(&path, &legacy);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), r#"{"language":"es"}"#);
+        // Once the new file exists the old one is no longer looked at
+        std::fs::write(&legacy, r#"{"language":"fr"}"#).unwrap();
+        migrate_legacy(&path, &legacy);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), r#"{"language":"es"}"#);
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     fn strings(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| s.to_string()).collect()

@@ -4,7 +4,7 @@ User settings: which target formats the conversion wheel shows, the language and
 
 ## What is saved
 
-`~/.config/mandarina/config.json` (or `$XDG_CONFIG_HOME/mandarina/`; `MANDARINA_CONFIG_DIR` forces it, useful for tests):
+`~/.config/mandarina/config.json` (or `$XDG_CONFIG_HOME/mandarina/`; on macOS `~/Library/Application Support/mandarina/`, see [[macOS]]; `MANDARINA_CONFIG_DIR` forces it, useful for tests):
 
 ```json
 { "formats": { "image": ["webp", "jpg", "png"], "audio": ["mp3", "wav", "ogg"] }, "language": "es", "accent": "blue" }

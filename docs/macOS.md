@@ -13,13 +13,15 @@ The Linux code paths are unchanged. Everything macOS-specific is behind `#[cfg(t
 - **Install hints.** `need()` turns the `sudo apt install …` hints into `brew install …` (`ffmpeg` → `ffmpeg-full`, because Homebrew's `ffmpeg` is built without libvorbis and OGG would fail; `poppler-utils` → `poppler`, `librsvg2-bin` → `librsvg`, `7zip` → `sevenzip`, `libreoffice` → `--cask libreoffice`).
 - **Transparent window.** Needs Tauri's `macos-private-api` feature and `app.macOSPrivateApi: true`. Both are in the shared files (`Cargo.toml`, `tauri.conf.json`) rather than macOS-only ones: tauri-build compares the `tauri` features in `[dependencies]` with the merged config and fails the build if they differ, and it does not look at `[target.'cfg(…)'.dependencies]`. Both settings only have an effect on macOS.
 - **Cancel.** `kill_group` runs `kill -KILL -- -<pgid>`; macOS's BSD `kill` accepts `--` too. `run_se_cancela_y_mata_al_hijo` (a shell and its grandchild) and `cancelar_libreoffice_no_deja_procesos` (a real LibreOffice conversion) check that nothing is left running, and both pass on macOS.
-- **Config** stays in `~/.config/mandarina/config.json` (or `$XDG_CONFIG_HOME`), the same as Linux.
+- **Config** lives in `~/Library/Application Support/mandarina/config.json`, the usual macOS place (`MANDARINA_CONFIG_DIR` still wins). A `~/.config/mandarina/config.json` saved by an earlier version is copied there once, the first time the app reads its settings.
 
 ## Opening it: Finder Quick Action
 
 `packaging/macos/Convert with Mandarina.workflow` is an Automator Quick Action for files and folders in Finder. It runs `open -n -b com.mandarina.converter --args <files>`: `open` lets macOS bring the window to the front, `-b` finds the app wherever it is installed, and `-n` starts a new wheel each time. The installer copies it to `~/Library/Services`. Optional shortcut: System Settings → Keyboard → Keyboard Shortcuts → Services → Files and Folders.
 
-Not handled yet: Finder's "Open With" (macOS sends the files as an Apple Event, `RunEvent::Opened`, not as arguments).
+## Opening it: Open With
+
+The bundle declares the supported extensions (`fileAssociations` in `tauri.macos.conf.json`) with rank **Alternate**, so Mandarina appears in Finder's right-click → Open With menu but never becomes the default app for a type. macOS delivers those files as an Apple Event (`RunEvent::Opened` in `lib.rs`), not as arguments. They are kept in `OPENED` (`wheel.rs`), and `initial_paths` / `show_wheel` use the arguments plus those files. If the event arrives after the page already started without files, the page gets them through the `open-files` event and opens the wheel at the cursor. Dropping files on the app icon goes the same way.
 
 ## Packaging
 
@@ -55,4 +57,6 @@ Same idea as [[Manual-Testing]]. Boxes marked **(already seen)** have evidence f
 - [ ] Wheel near a screen edge and on a **second display**: it stays fully on that display. **(screen edge seen 2026-10-20; second display not tested yet)**
 - [x] Clicking outside, Escape and 4 s idle still close the wheel. **(seen 2026-10-20)**
 - [x] Light and dark appearance (System Settings → Appearance). **(seen 2026-10-20)**
+- [ ] **Open With**: right-click a file → Open With → Mandarina opens the wheel at the cursor; Mandarina is listed but the default app for the type does not change. **(already seen: `open -a Mandarina <file>`, which sends the same Apple Event, loads the file; the previous build ignored it and stayed on the start screen)**
+- [ ] **Settings migration**: with an old `~/.config/mandarina/config.json`, the first launch copies it to `~/Library/Application Support/mandarina/`, and changes in the settings panel are saved there. **(already seen, copy on first launch)**
 - [ ] **Apple Silicon** and **Intel** Mac (or Rosetta: `arch -x86_64 /Applications/Mandarina.app/Contents/MacOS/mandarina <file>`). **(already seen: `cargo test --target x86_64-apple-darwin` passes under Rosetta and the universal app runs translated; not yet on a real Intel Mac)**

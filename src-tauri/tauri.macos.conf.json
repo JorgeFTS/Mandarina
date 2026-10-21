@@ -7,6 +7,123 @@
     "macOS": {
       "minimumSystemVersion": "11.0",
       "signingIdentity": "-"
-    }
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+          "heic",
+          "heif",
+          "tif",
+          "tiff",
+          "avif",
+          "bmp",
+          "gif",
+          "svg"
+        ],
+        "name": "Image",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "mp3",
+          "m4a",
+          "wav",
+          "flac",
+          "ogg",
+          "opus",
+          "aif",
+          "aiff",
+          "wma"
+        ],
+        "name": "Audio",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "mp4",
+          "mov",
+          "mkv",
+          "webm",
+          "avi",
+          "wmv"
+        ],
+        "name": "Video",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "pdf"
+        ],
+        "name": "PDF",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "docx",
+          "doc",
+          "odt",
+          "rtf",
+          "md",
+          "txt",
+          "epub",
+          "html",
+          "htm"
+        ],
+        "name": "Document",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "pptx",
+          "ppt",
+          "odp"
+        ],
+        "name": "Presentation",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "xlsx",
+          "xls",
+          "ods",
+          "csv",
+          "tsv"
+        ],
+        "name": "Spreadsheet",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "srt",
+          "vtt"
+        ],
+        "name": "Subtitles",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "zip",
+          "tar",
+          "gz",
+          "tgz",
+          "rar"
+        ],
+        "name": "Archive",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ]
   }
 }

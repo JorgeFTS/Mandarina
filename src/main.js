@@ -1202,6 +1202,15 @@ async function iniciar() {
   });
 
   if (!demo) tauri.webview.getCurrentWebview().onDragDropEvent(alArrastrar);
+  // macOS "Open With": files that arrive after startup (see lib.rs). Only used if the app
+  // started without files and is showing the start screen.
+  if (!demo)
+    tauri.event.listen("open-files", async (e) => {
+      if (vistaActual !== "inicio" || !e.payload.length) return;
+      modoLibre = false;
+      await cargarArchivos(e.payload);
+      await mostrarVentana();
+    });
 
   try {
     const iniciales = demo ? [] : await api.initial_paths().catch(() => []);
