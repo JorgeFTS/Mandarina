@@ -33,7 +33,7 @@ The script builds a universal app (Apple Silicon + Intel) and puts it in a DMG w
 
 ### Signing, quarantine and the installer
 
-The app is only ad-hoc signed (what `tauri build` does without a certificate). It is not signed with an Apple Developer ID and not notarized. Everything downloaded through a browser gets the `com.apple.quarantine` attribute, and Gatekeeper refuses to open a quarantined app that is not notarized: depending on the macOS version it says the app is "damaged" or from an "unidentified developer".
+The app is ad-hoc signed (`signingIdentity: "-"` in `tauri.macos.conf.json`). Without that setting Tauri only has the linker's signature on the binary and the bundle itself is unsigned, so macOS cannot remember privacy answers ("allow access to the Desktop folder") and asks on every launch; with a full ad-hoc signature it asks once per build. It is not signed with an Apple Developer ID and not notarized. Everything downloaded through a browser gets the `com.apple.quarantine` attribute, and Gatekeeper refuses to open a quarantined app that is not notarized: depending on the macOS version it says the app is "damaged" or from an "unidentified developer".
 
 The installer removes that attribute from the installed copy (`xattr -dr com.apple.quarantine`). That is what the user would otherwise do by hand with System Settings → Privacy & Security → Open Anyway; it does not change system settings or turn off Gatekeeper. Because the user is trusting the download, the Read Me asks them to compare the DMG with the published SHA-256 checksum first. The Read Me runs the installer with `bash <script>` because double-clicking an unsigned `.command` file is blocked the same way.
 
@@ -46,13 +46,13 @@ Same idea as [[Manual-Testing]]. Boxes marked **(already seen)** have evidence f
 - [ ] `cd src-tauri && cargo test` passes on macOS. **(already seen, Apple Silicon, macOS 26, with all converters installed)**
 - [ ] `packaging/macos/build-dmg.sh` builds, `lipo -archs Mandarina.app/Contents/MacOS/mandarina` says `x86_64 arm64`. **(already seen)**
 - [ ] Mount the DMG, run the installer with `bash`: it installs to `/Applications`, or to `~/Applications` when `/Applications` is not writable, and adds the Quick Action. **(already seen, ~/Applications case)**
-- [ ] Quick Action on **one file**: the wheel opens next to the cursor and stays open while the mouse moves over it; converting writes the result next to the original. **(already seen, PNG → PDF)**
-- [ ] Quick Action with **several files** selected: the multi-file wheel opens with the right count, and converting writes all of them. **(already seen: each selected file reaches the app as its own argument, read from the running process with `sysctl KERN_PROCARGS2`; the wheel itself still to check by eye)**
-- [ ] **Names with spaces**, quotes and accents (`Mi foto (1) ñ.png`), and a name starting with a space. **(already seen: `Mi foto (1) ñ.png`, ` leading space.png`, `it's "quoted".png` and `My Folder` arrive intact through the Quick Action)**
-- [ ] A **folder**: the wheel offers zip, tar and tar.gz.
-- [ ] **Cancel** a long conversion from the progress card (a large video, and a big spreadsheet → PDF through LibreOffice): the card closes, no partial file is left, and `pgrep soffice` / `pgrep ffmpeg` show nothing.
-- [ ] **Missing converter**: rename or hide one tool (e.g. run without LibreOffice): the error card names the tool and shows the `brew install …` command.
-- [ ] Wheel near a screen edge and on a **second display**: it stays fully on that display.
-- [ ] Clicking outside, Escape and 4 s idle still close the wheel.
-- [ ] Light and dark appearance (System Settings → Appearance).
+- [x] Quick Action on **one file**: the wheel opens next to the cursor and stays open while the mouse moves over it; converting writes the result next to the original. **(seen 2026-10-20)**
+- [x] Quick Action with **several files** selected: the multi-file wheel opens with the right count, and converting writes all of them. **(seen 2026-10-20: the wheel showed 3 files and converted all of them)**
+- [x] **Names with spaces**, quotes and accents (`Mi foto (1) ñ.png`), and a name starting with a space. **(seen: `Mi foto (1) ñ.png`, ` leading space.png`, `it's "quoted".png` and `My Folder` arrive intact)**
+- [x] A **folder**: the wheel offers zip, tar and tar.gz. **(seen 2026-10-20)**
+- [x] **Cancel** a long conversion from the progress card (a large video, and a big spreadsheet → PDF through LibreOffice): the card closes, no partial file is left, and `pgrep soffice` / `pgrep ffmpeg` show nothing. **(seen 2026-10-20: 4-minute 1080p video to WEBM, and a 150,000-row CSV to PDF; no partial file, no ffmpeg/soffice left)**
+- [x] **Missing converter**: rename or hide one tool (e.g. run without LibreOffice): the error card names the tool and shows the `brew install …` command. **(seen 2026-10-20 with LibreOffice hidden: "soffice not found. Install it with: brew install --cask libreoffice")**
+- [ ] Wheel near a screen edge and on a **second display**: it stays fully on that display. **(screen edge seen 2026-10-20; second display not tested yet)**
+- [x] Clicking outside, Escape and 4 s idle still close the wheel. **(seen 2026-10-20)**
+- [x] Light and dark appearance (System Settings → Appearance). **(seen 2026-10-20)**
 - [ ] **Apple Silicon** and **Intel** Mac (or Rosetta: `arch -x86_64 /Applications/Mandarina.app/Contents/MacOS/mandarina <file>`). **(already seen: `cargo test --target x86_64-apple-darwin` passes under Rosetta and the universal app runs translated; not yet on a real Intel Mac)**
