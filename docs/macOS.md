@@ -47,12 +47,12 @@ Same idea as [[Manual-Testing]]. Boxes marked **(already seen)** have evidence f
 - [ ] `packaging/macos/build-dmg.sh` builds, `lipo -archs Mandarina.app/Contents/MacOS/mandarina` says `x86_64 arm64`. **(already seen)**
 - [ ] Mount the DMG, run the installer with `bash`: it installs to `/Applications`, or to `~/Applications` when `/Applications` is not writable, and adds the Quick Action. **(already seen, ~/Applications case)**
 - [ ] Quick Action on **one file**: the wheel opens next to the cursor and stays open while the mouse moves over it; converting writes the result next to the original. **(already seen, PNG → PDF)**
-- [ ] Quick Action with **several files** selected: the multi-file wheel opens with the right count, and converting writes all of them.
-- [ ] **Names with spaces**, quotes and accents (`Mi foto (1) ñ.png`), and a name starting with a space.
+- [ ] Quick Action with **several files** selected: the multi-file wheel opens with the right count, and converting writes all of them. **(already seen: each selected file reaches the app as its own argument, read from the running process with `sysctl KERN_PROCARGS2`; the wheel itself still to check by eye)**
+- [ ] **Names with spaces**, quotes and accents (`Mi foto (1) ñ.png`), and a name starting with a space. **(already seen: `Mi foto (1) ñ.png`, ` leading space.png`, `it's "quoted".png` and `My Folder` arrive intact through the Quick Action)**
 - [ ] A **folder**: the wheel offers zip, tar and tar.gz.
 - [ ] **Cancel** a long conversion from the progress card (a large video, and a big spreadsheet → PDF through LibreOffice): the card closes, no partial file is left, and `pgrep soffice` / `pgrep ffmpeg` show nothing.
 - [ ] **Missing converter**: rename or hide one tool (e.g. run without LibreOffice): the error card names the tool and shows the `brew install …` command.
 - [ ] Wheel near a screen edge and on a **second display**: it stays fully on that display.
 - [ ] Clicking outside, Escape and 4 s idle still close the wheel.
 - [ ] Light and dark appearance (System Settings → Appearance).
-- [ ] **Apple Silicon** and **Intel** Mac (or Rosetta: `arch -x86_64 /Applications/Mandarina.app/Contents/MacOS/mandarina <file>`).
+- [ ] **Apple Silicon** and **Intel** Mac (or Rosetta: `arch -x86_64 /Applications/Mandarina.app/Contents/MacOS/mandarina <file>`). **(already seen: `cargo test --target x86_64-apple-darwin` passes under Rosetta and the universal app runs translated; not yet on a real Intel Mac)**
