@@ -70,8 +70,8 @@ Copy and paste each block into a terminal.
 ### Debian, Ubuntu, Linux Mint and derivatives (recommended)
 
 ```bash
-wget https://github.com/JorgeFTS/Mandarina/releases/download/v0.1.0-beta/Mandarina_0.1.0_amd64.deb
-sudo apt install ./Mandarina_0.1.0_amd64.deb
+wget https://github.com/JorgeFTS/Mandarina/releases/download/v0.1.1-beta/Mandarina_0.1.1_amd64.deb
+sudo apt install ./Mandarina_0.1.1_amd64.deb
 ```
 
 That installs the app and the conversion tools it uses (about 600 to 700 MB on an empty system, mostly LibreOffice; much less on a normal desktop, where most of them are already installed). Then open **Mandarina** from the applications menu, or run `mandarina` and drag a file onto it.
@@ -85,7 +85,7 @@ nautilus -q
 
 The installer is only run by you; it does not touch your files by itself. It sets up Nautilus and, on Linux Mint, Nemo (right click > *Convert with Mandarina*; restart it with `nemo -q`; to choose one, `MANDARINA_FM=nemo bash /usr/share/mandarina/install-nautilus.sh`). The Nemo entry was written from its documentation and not yet tried on a real Mint. Dolphin and Thunar are not supported yet.
 
-To skip the conversion tools and install them later, as the app asks, use `sudo apt install --no-install-recommends ./Mandarina_0.1.0_amd64.deb`.
+To skip the conversion tools and install them later, as the app asks, use `sudo apt install --no-install-recommends ./Mandarina_0.1.1_amd64.deb`.
 
 The package was installed and tried in clean containers of Ubuntu 22.04, 24.04 and 26.04 and Debian 12 and 13 (see [docs/Publishing.md](docs/Publishing.md)), but not yet on every real desktop. Linux Mint was not tried.
 
