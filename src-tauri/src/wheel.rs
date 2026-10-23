@@ -87,21 +87,24 @@ fn launch_paths() -> Vec<PathBuf> {
     paths
 }
 
-// Keeps the files of an "Open With" event (only those that exist, without repeats) and returns the
-// new ones, which the caller forwards to the page in case it had already started without files
+// Keeps the files of an "Open With" event (only those that exist, without repeats) and returns them
+// so the caller can forward them to the page: it may have started without files, or be showing others.
+// A file opened in an earlier event is returned again (the user may come back to it).
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub(crate) fn add_opened(paths: Vec<PathBuf>) -> Vec<String> {
     let Ok(mut opened) = OPENED.lock() else {
         return Vec::new();
     };
-    let mut new = Vec::new();
+    let mut event: Vec<PathBuf> = Vec::new();
     for path in paths {
-        if path.exists() && !opened.contains(&path) {
-            new.push(path.to_string_lossy().to_string());
-            opened.push(path);
+        if path.exists() && !event.contains(&path) {
+            if !opened.contains(&path) {
+                opened.push(path.clone());
+            }
+            event.push(path);
         }
     }
-    new
+    event.iter().map(|p| p.to_string_lossy().to_string()).collect()
 }
 
 #[tauri::command]
@@ -317,15 +320,15 @@ mod tests {
     }
 
     #[test]
-    fn abrir_con_guarda_solo_lo_nuevo_que_existe() {
+    fn abrir_con_guarda_lo_que_existe_sin_repetir() {
         let dir = std::env::temp_dir().join(format!("mandarina_open_{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let file = dir.join("a b.txt");
         std::fs::write(&file, "x").unwrap();
         let missing = dir.join("no existe.txt");
         assert_eq!(add_opened(vec![file.clone(), missing, file.clone()]), vec![file.to_string_lossy().to_string()]);
-        // The same file again is not new
-        assert!(add_opened(vec![file.clone()]).is_empty());
+        // Opening the same file again returns it again (the page may be showing other files by then)
+        assert_eq!(add_opened(vec![file.clone()]), vec![file.to_string_lossy().to_string()]);
         assert!(launch_paths().contains(&file));
         std::fs::remove_dir_all(&dir).unwrap();
     }
