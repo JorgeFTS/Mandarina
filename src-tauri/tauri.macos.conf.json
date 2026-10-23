@@ -24,6 +24,19 @@
           "gif",
           "svg"
         ],
+        "contentTypes": [
+          "public.jpeg",
+          "public.png",
+          "org.webmproject.webp",
+          "public.heic",
+          "public.heif-standard-image",
+          "public.heif",
+          "public.tiff",
+          "public.avif",
+          "com.microsoft.bmp",
+          "com.compuserve.gif",
+          "public.svg-image"
+        ],
         "name": "Image",
         "role": "Viewer",
         "rank": "Alternate"
@@ -40,6 +53,17 @@
           "aiff",
           "wma"
         ],
+        "contentTypes": [
+          "public.mp3",
+          "com.apple.m4a-audio",
+          "public.mpeg-4-audio",
+          "com.microsoft.waveform-audio",
+          "org.xiph.flac",
+          "org.xiph.ogg-audio",
+          "org.xiph.opus",
+          "public.aiff-audio",
+          "com.microsoft.windows-media-wma"
+        ],
         "name": "Audio",
         "role": "Viewer",
         "rank": "Alternate"
@@ -53,6 +77,14 @@
           "avi",
           "wmv"
         ],
+        "contentTypes": [
+          "public.mpeg-4",
+          "com.apple.quicktime-movie",
+          "org.matroska.mkv",
+          "org.webmproject.webm",
+          "public.avi",
+          "com.microsoft.windows-media-wmv"
+        ],
         "name": "Video",
         "role": "Viewer",
         "rank": "Alternate"
@@ -60,6 +92,9 @@
       {
         "ext": [
           "pdf"
+        ],
+        "contentTypes": [
+          "com.adobe.pdf"
         ],
         "name": "PDF",
         "role": "Viewer",
@@ -77,6 +112,16 @@
           "html",
           "htm"
         ],
+        "contentTypes": [
+          "org.openxmlformats.wordprocessingml.document",
+          "com.microsoft.word.doc",
+          "org.oasis-open.opendocument.text",
+          "public.rtf",
+          "net.daringfireball.markdown",
+          "public.plain-text",
+          "org.idpf.epub-container",
+          "public.html"
+        ],
         "name": "Document",
         "role": "Viewer",
         "rank": "Alternate"
@@ -86,6 +131,11 @@
           "pptx",
           "ppt",
           "odp"
+        ],
+        "contentTypes": [
+          "org.openxmlformats.presentationml.presentation",
+          "com.microsoft.powerpoint.ppt",
+          "org.oasis-open.opendocument.presentation"
         ],
         "name": "Presentation",
         "role": "Viewer",
@@ -99,6 +149,13 @@
           "csv",
           "tsv"
         ],
+        "contentTypes": [
+          "org.openxmlformats.spreadsheetml.sheet",
+          "com.microsoft.excel.xls",
+          "org.oasis-open.opendocument.spreadsheet",
+          "public.comma-separated-values-text",
+          "public.tab-separated-values-text"
+        ],
         "name": "Spreadsheet",
         "role": "Viewer",
         "rank": "Alternate"
@@ -107,6 +164,9 @@
         "ext": [
           "srt",
           "vtt"
+        ],
+        "contentTypes": [
+          "org.w3.webvtt"
         ],
         "name": "Subtitles",
         "role": "Viewer",
@@ -120,7 +180,50 @@
           "tgz",
           "rar"
         ],
+        "contentTypes": [
+          "public.zip-archive",
+          "public.tar-archive",
+          "org.gnu.gnu-zip-archive",
+          "org.gnu.gnu-zip-tar-archive",
+          "com.rarlab.rar-archive"
+        ],
         "name": "Archive",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "avif",
+          "flac",
+          "ogg",
+          "opus",
+          "aif",
+          "aiff",
+          "wma",
+          "webm",
+          "wmv",
+          "docx",
+          "doc",
+          "odt",
+          "md",
+          "epub",
+          "pptx",
+          "ppt",
+          "odp",
+          "xlsx",
+          "xls",
+          "ods",
+          "csv",
+          "tsv",
+          "srt",
+          "vtt",
+          "zip",
+          "tar",
+          "gz",
+          "tgz",
+          "rar"
+        ],
+        "name": "Other files",
         "role": "Viewer",
         "rank": "Alternate"
       }
