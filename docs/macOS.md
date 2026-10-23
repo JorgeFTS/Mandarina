@@ -21,7 +21,7 @@ The Linux code paths are unchanged. Everything macOS-specific is behind `#[cfg(t
 
 ## Opening it: Open With
 
-The bundle declares the supported extensions (`fileAssociations` in `tauri.macos.conf.json`) with rank **Alternate**, so Mandarina appears in Finder's right-click → Open With menu but never becomes the default app for a type. macOS delivers those files as an Apple Event (`RunEvent::Opened` in `lib.rs`), not as arguments. They are kept in `OPENED` (`wheel.rs`), and `initial_paths` / `show_wheel` use the arguments plus those files. If the event arrives after the page already started without files, the page gets them through the `open-files` event and opens the wheel at the cursor. Dropping files on the app icon goes the same way.
+The bundle declares the supported extensions (`fileAssociations` in `tauri.macos.conf.json`) with rank **Alternate**, so Mandarina appears in Finder's right-click → Open With menu but never becomes the default app for a type. macOS delivers those files as an Apple Event (`RunEvent::Opened` in `lib.rs`), not as arguments. They are kept in `OPENED` (`wheel.rs`), and `initial_paths` / `show_wheel` use the arguments plus those files. If the event arrives after the page already started without files, the page gets them through the `open-files` event and opens the wheel at the cursor. If the wheel is already showing other files, the new ones replace them and the wheel moves to the cursor; during a conversion, the editor or the settings the event is ignored. Dropping files on the app icon goes the same way.
 
 ## Packaging
 
