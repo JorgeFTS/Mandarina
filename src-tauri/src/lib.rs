@@ -52,14 +52,15 @@ pub fn run() {
         .run(|_app, _event| {
             // Finder's "Open With" (and dropping files on the Dock icon) sends the files as an
             // Apple Event instead of arguments. If it arrives before the page asks for its files,
-            // initial_paths includes them; if later, the page gets them through "open-files".
+            // initial_paths includes them; if later, the page gets them through "open-files" (also
+            // when the wheel is already showing other files: the new ones replace them).
             #[cfg(target_os = "macos")]
             if let tauri::RunEvent::Opened { urls } = _event {
                 use tauri::Emitter;
                 let paths = urls.iter().filter_map(|u| u.to_file_path().ok()).collect();
-                let new = wheel::add_opened(paths);
-                if !new.is_empty() {
-                    let _ = _app.emit("open-files", new);
+                let opened = wheel::add_opened(paths);
+                if !opened.is_empty() {
+                    let _ = _app.emit("open-files", opened);
                 }
             }
         });

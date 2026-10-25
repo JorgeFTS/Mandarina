@@ -1128,14 +1128,21 @@ async function mostrarVentana() {
     await api.center_wheel();
     await esperar(150);
   } else if (sobreCursor) {
-    // macOS can report the cursor directly; elsewhere wait for the first mouse event
-    const punto = await api.cursor_in_window().catch(() => null);
-    posRueda = punto ? { x: punto[0], y: punto[1] } : await esperarCursor();
-    await api.place_wheel(posRueda.x, posRueda.y);
-    await esperar(150); // so that the page adapts to the new size before showing the wheel
+    await colocarSobreCursor(false);
   }
   escenario.classList.remove("oculto");
   if (sobreCursor) vigilarAbandono();
+}
+
+// Puts the wheel under the cursor: the window covers the monitor (show_wheel), the cursor is found and
+// the window shrinks around it. mostrarVentana has already called show_wheel when cubrir is false.
+async function colocarSobreCursor(cubrir = true) {
+  if (cubrir) await api.show_wheel();
+  // macOS can report the cursor directly; elsewhere wait for the first mouse event
+  const punto = await api.cursor_in_window().catch(() => null);
+  posRueda = punto ? { x: punto[0], y: punto[1] } : await esperarCursor();
+  await api.place_wheel(posRueda.x, posRueda.y);
+  await esperar(150); // so that the page adapts to the new size before showing the wheel
 }
 
 // Waits for the first cursor event (600 ms at most). If none arrives, it uses the center of the screen.
@@ -1202,14 +1209,31 @@ async function iniciar() {
   });
 
   if (!demo) tauri.webview.getCurrentWebview().onDragDropEvent(alArrastrar);
-  // macOS "Open With": files that arrive after startup (see lib.rs). Only used if the app
-  // started without files and is showing the start screen.
+  // macOS "Open With": files that arrive after startup (see lib.rs). On the start screen they open
+  // the wheel; while the wheel shows other files they replace them, and the wheel moves to the cursor.
   if (!demo)
     tauri.event.listen("open-files", async (e) => {
-      if (vistaActual !== "inicio" || !e.payload.length) return;
-      modoLibre = false;
-      await cargarArchivos(e.payload);
-      await mostrarVentana();
+      const nuevas = e.payload;
+      if (!nuevas.length) return;
+      if (vistaActual === "inicio") {
+        modoLibre = false;
+        await cargarArchivos(nuevas);
+        await mostrarVentana();
+        return;
+      }
+      if (vistaActual !== "rueda" || enTransicion || mismasRutas(rutas, nuevas)) return;
+      const escenario = $("escenario");
+      enTransicion = true;
+      escenario.classList.add("oculto");
+      await esperar(60);
+      try {
+        if (await cargarArchivos(nuevas)) await colocarSobreCursor();
+        else await api.center_wheel(); // "Unsupported format" and the like go in the center
+      } finally {
+        escenario.classList.remove("oculto");
+        enTransicion = false;
+        if (vistaActual === "rueda" && rearmarAbandono) rearmarAbandono();
+      }
     });
 
   try {
