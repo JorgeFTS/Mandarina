@@ -1221,14 +1221,15 @@ async function iniciar() {
         await mostrarVentana();
         return;
       }
-      if (vistaActual !== "rueda" || enTransicion || mismasRutas(rutas, nuevas)) return;
+      // The wheel or a card (error, notice, "Done") is showing: the new files replace what is there
+      if ((vistaActual !== "rueda" && vistaActual !== "tarjeta") || enTransicion || mismasRutas(rutas, nuevas)) return;
       const escenario = $("escenario");
       enTransicion = true;
       escenario.classList.add("oculto");
       await esperar(60);
       try {
         if (await cargarArchivos(nuevas)) await colocarSobreCursor();
-        else await api.center_wheel(); // "Unsupported format" and the like go in the center
+        else if (rutas === nuevas) await api.center_wheel(); // "Unsupported format" and the like go in the center
       } finally {
         escenario.classList.remove("oculto");
         enTransicion = false;
