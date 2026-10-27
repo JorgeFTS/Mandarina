@@ -2,7 +2,7 @@
   "name": "mandarina",
   "private": true,
   "license": "MIT",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "tauri": "tauri"
